@@ -9,36 +9,54 @@ const a_e = 149597870.691; //[km]
       Gmu = 1.32712442099e+11; // Гравитационная постоянная для Солнца
 
       znak = -1; // Знак у lambda_s при вторичных возмущениях
-      toRad = pi/180;
-      toDeg = 180/pi;
+      toRad = pi/180; // Перевод в радианы
+      toDeg = 180/pi; // Перевод в градусы
 
-      rows = 12;
-      cols = 30;
-      row_step = 360 / rows;
-      col_step = 30 / cols;
+      rows = 8; // Количество строк в сетке
+      cols = 80; // Количество столбцов в сетке
+      row_step = 360 / rows; // Шаг по строкам
+      col_step = 100 / cols; // Шаг по столбцам
+
+      // Запись в файл
+      ORBIT = false;
+      SECOND_PLUS = false;
+      SECOND_MINUS = false;
 
 type 
+    CLS = array[1..5] of integer;
     arr = array[1..5] of extended;
     mas = array[1..3] of extended;
     NETWORK = array[1..5, 1..rows + 1, 1..cols + 1] of integer;
     angle_data = array[1..5, 1..2000] of extended;
     time_data = array[1..2000] of extended;
 
-var coords, velocities: mas;
-    angles, freq: arr; 
-    net: NETWORK;
-    
+var coords, velocities: mas; // Массив координат и скоростей
+    angles, angles2, angles3: arr; // Массивы резонансных углов Ф
+    freq, freq2, freq3: arr; // Массивы резонансных частот Ф'
+
+    net, net2, net3: NETWORK; // Сетки для разных наборов данных
+    classes, classes2, classes3: CLS; // Массивы с классификацией резонансов
+
     jd, a, e, i, Omega, w, M, megno, mean_megno: extended; 
     tm, time, day: extended;
-    year, month, num, x, row, col, class_: integer;
-    idx, time_idx, angle_idx, freq_idx: integer;
+    year, month, num, number, x, row, col: integer;
+    idx, time_idx, angle_idx, angle2_idx, angle3_idx: integer; // Индексы
 
-    data, orbit_res, second_res: text;
+    data, outdata, orbit_res, second_plus, second_minus: text; // Файлы
+                                                // data - файл с исходными данными
+                                                // outdata - файл для записи элементов
+                                                // orbit_res - выходной файл с орбитальными резонансами
+                                                // second_plus - выходной файл с вторичными резонансами (+)
+                                                // second_minus - выходной файл с вторичными резонансами (-)
     // ss: string[11];
-    ss: string[7];
+    ss: string[7]; // Служебная строка
 
-    phi, dot_phi: angle_data;
-    t: time_data;
+    phi, phi2, phi3: angle_data; // Массивы с резонансными углами
+    dot_phi, dot_phi2, dot_phi3: angle_data; // Массивы с резонансными частотами
+    t: time_data; // Массив с моментами времени
+
+    folder: integer; // Папка с исходными файлами
+    file_num: string;
 
 procedure OutNET(net: NETWORK);
 // Вывод матриц
@@ -59,7 +77,6 @@ begin
     writeln;
   end;
 end;
-
 
 procedure perehod(HH: extended; 
                   xx: mas; 
@@ -120,7 +137,7 @@ end;
 
 procedure Resonance(res, znak, year, month: integer;
                     day: extended;
-                    M, Omega, w, ecc, i, a: extended;
+                    M, Omega, w, ecc, i, a: extended; // Элементы орбиты
                     var angles, freq: arr);
 // Процедура для вычисления орбитальных резонансов
 // res - порядок резонанса (1 - без учёта вторичных возмущений)
@@ -194,38 +211,43 @@ begin
     end;
 end; {Resonance}
 
-
 procedure Classification(net: NETWORK;
                         t: time_data;
                         phi, dot_phi: angle_data;
                         num: integer;
-                        var class_: integer);
+                        var classes: CLS);
 // Классификация резонанса
 // Параметры:
 // net - сетка графика
+// t - массив времени
+// phi, dot_phi - массивы углов и частот
 // num - номер исследуемого объекта
-// class_ - выходное значение класса резонанса
+// classes - выходной массив классов резонанса
 
-// 1 - циркуляция
-// 2 - либрация
-// 3 - смешанный тип
+// 0 - циркуляция
+// 1 - либрация
+// 2 - смешанный тип
 var
   res, i, j: integer;
   zero_cols_counter, zero_rows_counter, zero_counter, count: integer;
-  inc_count, dec_count: integer;
+  inc_count, dec_count, class_: integer;
+
 begin
-  writeln('[FILE]', #9, num);
+  // writeln('[FILE]', #9, num);
 
   // Цикл по компонентам резонанса
   for res := 1 to 5 do
   begin  
+    class_ := 0;
     zero_counter := 0;
     count := 0;
 
+    // Цикл по строчкам сетки
     for i := 1 to rows do
     begin
-      zero_rows_counter := 0;
+      zero_rows_counter := 0; {Счётчик нулевых ячеек в строке}
     
+      // Цикл по столбцам
       for j := 1 to cols do
       begin
         count := count + net[res, i, j];
@@ -237,8 +259,8 @@ begin
         end;
       end;
 
-      if (zero_rows_counter = cols) then class_ := 2;
-      if (zero_rows_counter > 1) then class_ := 3;
+      if (zero_rows_counter <> 0) then class_ := 2;
+      if (zero_rows_counter = cols) then class_ := 1;
     end;
 
     for j:= 1 to cols do
@@ -246,47 +268,46 @@ begin
       zero_cols_counter := 0;
 
       for i := 1 to rows do
-      begin
         if (net[res, i, j] = 0) then inc(zero_cols_counter);
 
-      end;  
-
-      if (zero_cols_counter > 1) then class_ := 3;
+      if (zero_cols_counter > 1) then class_ := 2;
     end;
 
-    if (zero_counter = 0) then class_ := 1;
+    if (zero_counter = 0) then class_ := 0;
 
     inc_count := 0;
     dec_count := 0;
     for i := 1 to count-1 do
     begin
+      // Подсчёт убывющих точек
       if (phi[res, i] > phi[res, i+1]) or 
-      ((phi[res, i] < 10 * toRad) and (phi[res, i+1] > 350 * toRad)) then
-        inc(dec_count); 
-      
+      ((phi[res, i] < 10 * toRad) and (phi[res, i+1] > 350 * toRad)) then inc(dec_count);
+
+      // Подсчёт возрастающих точек
       if (phi[res, i] < phi[res, i+1]) or 
-      ((phi[res, i] > 350 * toRad) and (phi[res, i+1] < 10 * toRad)) then
-        inc(inc_count);         
+      ((phi[res, i] > 350 * toRad) and (phi[res, i+1] < 10 * toRad)) then inc(inc_count);         
     end;
 
     if (inc_count = count) then 
     begin
       writeln(inc_count, '=',count);
-      class_ := 1;
+      class_ := 0;
     end;
     if (dec_count = count) then
     begin
       writeln(dec_count, '=',count);
-      class_ := 1;
+      class_ := 0;
     end;
 
-    writeln('[RESONANCE]', #9, res, #9, '[CLASS]', #9, class_);
+    // writeln('[RESONANCE]', #9, res, #9, '[CLASS]', #9, class_);
+    classes[res] := class_;
   end;
 end;
 
 procedure WriteToFile(var f: text;
                       time: extended;
                       angles, freq: arr);
+// Запись данных о резонансах в файл f
 begin
   writeln(f, time/(86400 * 365), ' ',
               angles[1] * toDeg, ' ',
@@ -301,93 +322,140 @@ begin
               freq[5]);
 end;
 
+begin {Main}
+  assign(outdata, '..\Данные\Выход\Классификация.csv');
+  rewrite(outdata);
+  folder := 1;
 
-procedure Check_all(folder: integer);
-var 
-  data, outdata: text;
-  num: integer;
-  file_num: string;
+  writeln(outdata, 'folder,file,F1,F2,F3,F4,F5,dF1(+),dF2(+),dF3(+),dF4(+),dF5(+),dF1(-),dF2(-),dF3(-),dF4(-),dF5(-)');
 
-begin
-  // assign(outdata, '..\Данные\Классификация.csv');
-  // rewrite(outdata);
-  
-  for num := 1 to 1003 do
+  { Цикл по файлам в папке folder }
+  for number := 1 to 9000 do
   begin
-    if (num < 10) then file_num := '000' + inttostr(num);
-    if (num >= 10) and (num < 100) then file_num := '00' + inttostr(num);
-    if (num >= 100) and (num < 1000) then file_num := '0' + inttostr(num);
-    if (num >= 1000) then file_num := inttostr(num);
+    if (number < 10) then file_num := '000' + inttostr(number);
+    if (number >= 10) and (number < 100) then file_num := '00' + inttostr(number);
+    if (number >= 100) and (number < 1000) then file_num := '0' + inttostr(number);
+    if (number >= 1000) then file_num := inttostr(number);
 
     assign(data, '..\Данные\' + inttostr(folder) + '\EPH_' + file_num + '.DAT');
     reset(data);
 
-    close(data);
-  end;
+    if ORBIT then
+    begin
+      assign(orbit_res, '..\Данные\Выход\Орбитальные\' + file_num + '.dat');
+      rewrite(orbit_res);
+      writeln(orbit_res, 't', #9, 'F1', #9, 'F2', #9, 'F3', #9, 'F4', #9, 'F5', #9, 'dF1', #9, 'dF2', #9, 'dF3', #9, 'dF4', #9, 'dF5');
+    end;
 
-  // close(outdata);
-end;
+    if SECOND_PLUS then
+    begin
+      assign(second_plus, '..\Данные\Выход\Вторичные\плюс\' + file_num + '.dat');
+      rewrite(second_plus);
+      writeln(second_plus, 't', #9, 'F1', #9, 'F2', #9, 'F3', #9, 'F4', #9, 'F5', #9, 'dF1', #9, 'dF2', #9, 'dF3', #9, 'dF4', #9, 'dF5');
+    end;
 
-begin {Main}
-    // assign(data, 'C:\Users\egorp\Desktop\диплом\файлы\ЧМ ИСЗ (для ПК) 28.04.20 Lobbie III\EPH_0001.DAT');
-    assign(data, '..\Данные\1\EPH_0001.DAT');
-    reset(data);
-    // assign(orbit_res, 'Орбитальные резонансы.dat');
-    // rewrite(orbit_res);
-    // assign(second_res, 'Вторичные резонансы.dat');
-    // rewrite(second_res);
-
-    // writeln(orbit_res, 't', #9, 'F1', #9, 'F2', #9, 'F3', #9, 'F4', #9, 'F5', #9, 'dF1', #9, 'dF2', #9, 'dF3', #9, 'dF4', #9, 'dF5');
-    // writeln(second_res, 't', #9, 'F1', #9, 'F2', #9, 'F3', #9, 'F4', #9, 'F5', #9, 'dF1', #9, 'dF2', #9, 'dF3', #9, 'dF4', #9, 'dF5');
+    if SECOND_MINUS then
+    begin
+      assign(second_minus, '..\Данные\Выход\Вторичные\минус\' + file_num + '.dat');
+      rewrite(second_minus);
+      writeln(second_minus, 't', #9, 'F1', #9, 'F2', #9, 'F3', #9, 'F4', #9, 'F5', #9, 'dF1', #9, 'dF2', #9, 'dF3', #9, 'dF4', #9, 'dF5');
+    end;
 
     for num := 1 to 5 do 
     begin
       for row := 1 to rows do
         for col := 1 to cols do
+        begin
           net[num, row, col] := 0;
+          net2[num, row, col] := 0;
+          net3[num, row, col] := 0;
+        end;
       
       for row := 1 to 2000 do
       begin
         t[row] := 0;
+
         phi[num, row] := 0;
+        phi2[num, row] := 0;
+        phi3[num, row] := 0;
+
         dot_phi[num, row] := 0;
+        dot_phi2[num, row] := 0;
+        dot_phi3[num, row] := 0;
       end;
     end;
-    
+      
     idx := 0;
 
     while not eof(data) do
     begin
-        readln(data, tm, time, ss, year, month, day);
-        readln(data, x, coords[1], coords[2], coords[3], megno);
-        readln(data, velocities[1], velocities[2], velocities[3], mean_megno);
+      readln(data, tm, time, ss, year, month, day);
+      readln(data, x, coords[1], coords[2], coords[3], megno);
+      readln(data, velocities[1], velocities[2], velocities[3], mean_megno);
 
-        CoordsToElements(coords, velocities, mu, a, e, i, Omega, w, M);
+      CoordsToElements(coords, velocities, mu, a, e, i, Omega, w, M);
 
-        Resonance(1, znak, year, month, day, M, Omega, w, ecc, i, a, angles, freq);
+      Resonance(1, znak, year, month, day, M, Omega, w, ecc, i, a, angles, freq);
+      Resonance(2, -1, year, month, day, M, Omega, w, ecc, i, a, angles2, freq2);
+      Resonance(2, 1, year, month, day, M, Omega, w, ecc, i, a, angles3, freq3);
+      
+      t[idx] := time;
+      time_idx := trunc(time / (86400 * 365 * col_step)) + 1;
+      for num := 1 to 5 do
+      begin
+        {Заполнение массивов для орбитального резонанса}
+        angle_idx := trunc(angles[num] * toDeg / row_step) + 1;
+        inc(net[num, angle_idx, time_idx]);
+        phi[num, idx] := angles[num];
+        dot_phi[num, idx] := freq[num];
         
-        t[idx] := time;
-        time_idx := trunc(time / (86400 * 365 * col_step)) + 1;
-        for num := 1 to 5 do
-        begin
-          angle_idx := trunc(angles[num] * toDeg / row_step) + 1;
-          inc(net[num, angle_idx, time_idx]);
+        {Заполнение массивов для вторичных резонансов (знак -)}
+        angle2_idx := trunc(angles2[num] * toDeg / row_step) + 1;
+        inc(net2[num, angle2_idx, time_idx]);
+        phi2[num, idx] := angles2[num];
+        dot_phi2[num, idx] := freq2[num];
 
-          phi[num, idx] := angles[num];
-          dot_phi[num, idx] := freq[num];
-        end;
-        // WriteToFile(orbit_res, time, angles, freq);
+        {Заполнение массивов для вторичных резонансов (знак +)}
+        angle3_idx := trunc(angles3[num] * toDeg / row_step) + 1;
+        inc(net3[num, angle3_idx, time_idx]);
+        phi3[num, idx] := angles3[num];
+        dot_phi3[num, idx] := freq3[num];
+      end;
+      
+      if ORBIT then WriteToFile(orbit_res, time, angles, freq);
+      if SECOND_PLUS then WriteToFile(second_minus, time, angles2, freq2);
+      if SECOND_PLUS then WriteToFile(second_plus, time, angles3, freq3);
 
-        // Resonance(2, znak, year, month, day, M, Omega, w, ecc, i, a, angles, freq);
-        // WriteToFile(second_res, time, angles, freq);
+      inc(idx);
     end;
-
+    
     // OutNET(net);
+    Classification(net, t, phi, dot_phi, number, classes);
+    Classification(net2, t, phi2, dot_phi2, number, classes2);
+    Classification(net3, t, phi3, dot_phi3, number, classes3);
 
-    Classification(net, t, phi, dot_phi, 1, class_);
+    writeln(outdata, folder,',',
+                      number,',',
+                      classes[1],',',
+                      classes[2],',',
+                      classes[3],',',
+                      classes[4],',',
+                      classes[5],',',
+                      classes2[1],',',
+                      classes2[2],',',
+                      classes2[3],',',
+                      classes2[4],',',
+                      classes2[5],',',
+                      classes3[1],',',
+                      classes3[2],',',
+                      classes3[3],',',
+                      classes3[4],',',
+                      classes3[5]);
 
-    Check_all(1);
-    // close(second_res);
-    // close(orbit_res);
+    if SECOND_PLUS then close(second_plus);
+    if SECOND_MINUS then close(second_minus);
+    if ORBIT then close(orbit_res);
     close(data);
+  end;
+  close(outdata);
 end.
