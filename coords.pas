@@ -21,8 +21,8 @@ var
     data, elements: text;
 
 begin
-    assign(data, '../coords/coords - 1.dat');
-    assign(elements, '../coords/elements.dat');
+    assign(data, '../coords/Omega_' + inttostr(Omega) +'/coords - 1.dat');
+    assign(elements, '../coords/Omega_' + inttostr(Omega) + '/elements.dat');
     rewrite(elements);
     rewrite(data);
     a := 26500;
@@ -39,9 +39,12 @@ begin
         n := sqrt(mu/(a * sqr(a)));
         while (i <= 180) do
         begin
-            TwoPoints(0, n, M0, w, Omega, i*toRad, a, X, V);
+            TwoPoints(0, n, M0, w, Omega, i, a, X, V);
             inc(count);
-            writeln(elements, file_number, ' ', count, a, i);
+            writeln(elements, file_number, ';',
+                            count, ';',
+                            a, ';',
+                            i);
             writeln(data, '1.0000');
             writeln(data, '5.0000');
             writeln(data, X[1], X[2], X[3]);
@@ -52,7 +55,7 @@ begin
                 count := 0;
                 close(data);
                 inc(file_number);
-                assign(data, '../coords/coords - ' + inttostr(file_number) + '.dat');
+                assign(data, '../coords/Omega_' + inttostr(Omega) + '/coords - ' + inttostr(file_number) + '.dat');
                 rewrite(data);
             end;
             i := i + di;

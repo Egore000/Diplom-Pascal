@@ -18,10 +18,13 @@ const a_e = 149597870.691; //[km]
       col_step = 100 / cols; // Шаг по столбцам
 
       // Запись в файл
-      ORBIT = false;
-      SECOND_PLUS = false;
-      SECOND_MINUS = false;
+      WRITE_ORBIT = false;
+      WRITE_SECOND_PLUS = false;
+      WRITE_SECOND_MINUS = false;
 
+      // Порядок резонанса (u:v)
+      u = 1;
+      v = 2;
 type 
     CLS = array[1..5] of integer;
     arr = array[1..5] of extended;
@@ -175,11 +178,11 @@ begin
       lmd_s := OmegaS + ws + M_s;
     end;  
 
-    Reduce(M + Omega + w - theta + znak * lmd_s, angles[1]);
-    Reduce(M + Omega + w - theta + znak * lmd_s, angles[2]);
-    Reduce(M + Omega + w - theta + znak * lmd_s, angles[3]);
-    Reduce(M + w - theta + znak * lmd_s, angles[4]);
-    Reduce(M + 2*Omega - w - theta + znak * lmd_s, angles[5]);
+    Reduce(u * (M + Omega + w) - v * theta + znak * lmd_s, angles[1]);
+    Reduce(u * (M + w) + v * (Omega - theta) + znak * lmd_s, angles[2]);
+    Reduce(u * M + v * (Omega + w - theta) + znak * lmd_s, angles[3]);
+    Reduce(angles[1] - v * Omega + znak * lmd_s, angles[4]);
+    Reduce(angles[3] + v * Omega - 2 * v * w + znak * lmd_s, angles[5]);
 
     n := sqrt(mu/(a*sqr(a)));
     d_OmegaJ2 := -1.5*J2 * n * sqr(r0/a) * cos(i) / sqr(1 - sqr(ecc));
@@ -194,11 +197,11 @@ begin
     d_Omega := d_OmegaJ2 + d_Omega_L + d_Omega_S;
     d_w := d_wJ2 + d_w_L + d_w_S;
 
-    freq[1] := n + d_Omega + d_w - d_theta;
-    freq[2] := n + d_Omega + d_w - d_theta;
-    freq[3] := n + d_Omega + d_w - d_theta;
-    freq[4] := n + d_w - d_theta;
-    freq[5] := n + 2*d_Omega - d_w - d_theta;
+    freq[1] := u * (n + d_Omega + d_w) - v * d_theta;
+    freq[2] := u * (n + d_w) + v * (d_Omega - d_theta);
+    freq[3] := u * n + v * (d_Omega + d_w - d_theta);
+    freq[4] := freq[1] - v * d_Omega;
+    freq[5] := freq[3] + v * d_Omega - 2 * v * d_w;
 
     // Вычисление частот резонанса при res = 2
     if (res = 2) then
@@ -230,7 +233,7 @@ procedure Classification(net: NETWORK;
 var
   res, i, j: integer;
   zero_cols_counter, zero_rows_counter, zero_counter, count: integer;
-  inc_count, dec_count, class_: integer;
+  inc_count, dec_count, perehod_count, class_: integer;
 
 begin
   // writeln('[FILE]', #9, num);
@@ -241,6 +244,7 @@ begin
     class_ := 0;
     zero_counter := 0;
     count := 0;
+    perehod_count := 0;
 
     // Цикл по строчкам сетки
     for i := 1 to rows do
@@ -286,6 +290,9 @@ begin
       // Подсчёт возрастающих точек
       if (phi[res, i] < phi[res, i+1]) or 
       ((phi[res, i] > 350 * toRad) and (phi[res, i+1] < 10 * toRad)) then inc(inc_count);         
+    
+      // Подсчёт переходов частоты через 0
+      if (dot_phi[res, i] * dot_phi[res, i+1]) < 0 then inc(perehod_count);
     end;
 
     if (inc_count = count) then 
@@ -293,11 +300,16 @@ begin
       writeln(inc_count, '=',count);
       class_ := 0;
     end;
+    
     if (dec_count = count) then
     begin
       writeln(dec_count, '=',count);
       class_ := 0;
     end;
+
+    // writeln('[ZERO FREQUENCE TRANSITION]   ', perehod_count);
+    // if (perehod_count < count * 0.1) then class_ := 0
+    // else class_ := 1;
 
     // writeln('[RESONANCE]', #9, res, #9, '[CLASS]', #9, class_);
     classes[res] := class_;
@@ -327,7 +339,7 @@ begin {Main}
   rewrite(outdata);
   folder := 1;
 
-  writeln(outdata, 'folder,file,F1,F2,F3,F4,F5,dF1(+),dF2(+),dF3(+),dF4(+),dF5(+),dF1(-),dF2(-),dF3(-),dF4(-),dF5(-)');
+  writeln(outdata, 'folder;file;F1;F2;F3;F4;F5;dF1(+);dF2(+);dF3(+);dF4(+);dF5(+);dF1(-);dF2(-);dF3(-);dF4(-);dF5(-)');
 
   { Цикл по файлам в папке folder }
   for number := 1 to 9000 do
@@ -340,21 +352,21 @@ begin {Main}
     assign(data, '..\Данные\' + inttostr(folder) + '\EPH_' + file_num + '.DAT');
     reset(data);
 
-    if ORBIT then
+    if WRITE_ORBIT then
     begin
       assign(orbit_res, '..\Данные\Выход\Орбитальные\' + file_num + '.dat');
       rewrite(orbit_res);
       writeln(orbit_res, 't', #9, 'F1', #9, 'F2', #9, 'F3', #9, 'F4', #9, 'F5', #9, 'dF1', #9, 'dF2', #9, 'dF3', #9, 'dF4', #9, 'dF5');
     end;
 
-    if SECOND_PLUS then
+    if WRITE_SECOND_PLUS then
     begin
       assign(second_plus, '..\Данные\Выход\Вторичные\плюс\' + file_num + '.dat');
       rewrite(second_plus);
       writeln(second_plus, 't', #9, 'F1', #9, 'F2', #9, 'F3', #9, 'F4', #9, 'F5', #9, 'dF1', #9, 'dF2', #9, 'dF3', #9, 'dF4', #9, 'dF5');
     end;
 
-    if SECOND_MINUS then
+    if WRITE_SECOND_MINUS then
     begin
       assign(second_minus, '..\Данные\Выход\Вторичные\минус\' + file_num + '.dat');
       rewrite(second_minus);
@@ -422,9 +434,9 @@ begin {Main}
         dot_phi3[num, idx] := freq3[num];
       end;
       
-      if ORBIT then WriteToFile(orbit_res, time, angles, freq);
-      if SECOND_PLUS then WriteToFile(second_minus, time, angles2, freq2);
-      if SECOND_PLUS then WriteToFile(second_plus, time, angles3, freq3);
+      if WRITE_ORBIT then WriteToFile(orbit_res, time, angles, freq);
+      if WRITE_SECOND_PLUS then WriteToFile(second_minus, time, angles2, freq2);
+      if WRITE_SECOND_PLUS then WriteToFile(second_plus, time, angles3, freq3);
 
       inc(idx);
     end;
@@ -434,27 +446,27 @@ begin {Main}
     Classification(net2, t, phi2, dot_phi2, number, classes2);
     Classification(net3, t, phi3, dot_phi3, number, classes3);
 
-    writeln(outdata, folder,',',
-                      number,',',
-                      classes[1],',',
-                      classes[2],',',
-                      classes[3],',',
-                      classes[4],',',
-                      classes[5],',',
-                      classes2[1],',',
-                      classes2[2],',',
-                      classes2[3],',',
-                      classes2[4],',',
-                      classes2[5],',',
-                      classes3[1],',',
-                      classes3[2],',',
-                      classes3[3],',',
-                      classes3[4],',',
+    writeln(outdata, folder,';',
+                      number,';',
+                      classes[1],';',
+                      classes[2],';',
+                      classes[3],';',
+                      classes[4],';',
+                      classes[5],';',
+                      classes2[1],';',
+                      classes2[2],';',
+                      classes2[3],';',
+                      classes2[4],';',
+                      classes2[5],';',
+                      classes3[1],';',
+                      classes3[2],';',
+                      classes3[3],';',
+                      classes3[4],';',
                       classes3[5]);
 
-    if SECOND_PLUS then close(second_plus);
-    if SECOND_MINUS then close(second_minus);
-    if ORBIT then close(orbit_res);
+    if WRITE_SECOND_PLUS then close(second_plus);
+    if WRITE_SECOND_MINUS then close(second_minus);
+    if WRITE_ORBIT then close(orbit_res);
     close(data);
   end;
   close(outdata);
