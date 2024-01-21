@@ -3,37 +3,18 @@
       TwoBody, 
       service;
 
-const a_e = 149597870.691; //[km]
-      pi = 3.1415926;
-      mu = 3.986004418e+5; // Гравитационная постоянная для спутника
-      Gmu = 1.32712442099e+11; // Гравитационная постоянная для Солнца
-
-      znak = -1; // Знак у lambda_s при вторичных возмущениях
-      toRad = pi/180; // Перевод в радианы
-      toDeg = 180/pi; // Перевод в градусы
-
-      rows = 8; // Количество строк в сетке
-      cols = 80; // Количество столбцов в сетке
-      row_step = 360 / rows; // Шаг по строкам
-      col_step = 100 / cols; // Шаг по столбцам
-
-      // Запись в файл
-      WRITE_ORBIT = false;
-      WRITE_SECOND_PLUS = false;
-      WRITE_SECOND_MINUS = false;
+const znak = -1; // Знак у lambda_s при вторичных возмущениях
 
       // Порядок резонанса (u:v)
       u = 1;
       v = 2;
-type 
-    CLS = array[1..5] of integer;
-    arr = array[1..5] of extended;
-    mas = array[1..3] of extended;
-    NETWORK = array[1..5, 1..rows + 1, 1..cols + 1] of integer;
-    angle_data = array[1..5, 1..2000] of extended;
-    time_data = array[1..2000] of extended;
 
-var coords, velocities: mas; // Массив координат и скоростей
+      // Запись в файлы
+      WRITE_ORBIT = false;
+      WRITE_SECOND_PLUS = false;
+      WRITE_SECOND_MINUS = false;
+
+var coords, velocities: mas; // Массивы координат и скоростей
     angles, angles2, angles3: arr; // Массивы резонансных углов Ф
     freq, freq2, freq3: arr; // Массивы резонансных частот Ф'
 
@@ -61,82 +42,6 @@ var coords, velocities: mas; // Массив координат и скорос�
     folder: integer; // Папка с исходными файлами
     file_num: string;
 
-procedure OutNET(net: NETWORK);
-// Вывод матриц
-var 
-  num, row, col: integer;
-begin
-  for num := 1 to 5 do
-  begin
-    writeln('num = ', num);
-    for row := 1 to rows do
-    begin
-      for col := 1 to cols do
-      begin
-        write(net[num, row, col], #9);
-      end;
-      writeln;
-    end;
-    writeln;
-  end;
-end;
-
-procedure perehod(HH: extended; 
-                  xx: mas; 
-                  var lambda, phi: extended);
-// Переход во вращающуюся СК 
-var A: array[1..3,1..3] of extended;
-    i, j: integer;
-    s, r, argum: extended;
-    yy: mas;
-begin
-
-    A[1,1] := cos(HH);     A[1,2] := sin(HH);    A[1,3] := 0;
-    A[2,1] := -sin(HH);    A[2,2] := cos(HH);    A[2,3] := 0;
-    A[3,1] := 0;           A[3,2] := 0;          A[3,3] := 1;
-
-    for i:=1 to 3 do
-    begin
-      s := 0;
-      for j:=1 to 3 do
-        s := s + A[i,j]*xx[j];
-      yy[i] := s;
-    end;
-    r := sqrt(yy[1]*yy[1] + yy[2]*yy[2] + yy[3]*yy[3]);
-
-    lambda := arctg(yy[2], yy[1]);
-
-    argum := yy[3]/r;
-    phi := arcsin(argum);
-  end; //perehod
-
-procedure fond405(jd:extended; var xm_,xs_,vm_,vs_:mas);  var x_planet:masc;
-begin
-    read405(0, 1, jd, x_planet);    
-    // процедура выдает координаты и скорости Луны и Солнца в геоцентрической 
-    // экваториальной — км и км/с
-
-    //переход в геоцентрическую экваториальную — в км
-
-    // координаты Луны и Солнца
-    xm_[1] := (x_planet[55] - x_planet[13]) * a_e;  //
-    xm_[2] := (x_planet[56] - x_planet[14]) * a_e;  //
-    xm_[3] := (x_planet[57] - x_planet[15]) * a_e;  //   {xle=xl-xe}
-        
-    xs_[1] := -x_planet[13] * a_e;  //
-    xs_[2] := -x_planet[14] * a_e; //
-    xs_[3]:= - x_planet[15] * a_e; //    {xs=-xe }
-
-    //скорости Луны и Солнца
-    vm_[1] := (x_planet[58] - x_planet[16]) * a_e/86400;
-    vm_[2] := (x_planet[59] - x_planet[17]) * a_e/86400;
-    vm_[3] := (x_planet[60] - x_planet[18])*a_e/86400;     {vle=vl-ve}
-
-    vs_[1] := -x_planet[16] * a_e/86400;
-    vs_[2] := -x_planet[17] * a_e/86400;
-    vs_[3] := -x_planet[18] * a_e/86400;     {vs=-ve}
-
-end;
 
 procedure Resonance(res, znak, year, month: integer;
                     day: extended;
@@ -169,7 +74,7 @@ begin
     jd := date_jd(year, month, day);
     theta := sid2000(jd);
 
-    // Учёт влияния Солнца при res = 2
+    // Учёт влияния Солнца (при res = 2)
     lmd_s := 0;
     if (res = 2) then
     begin
@@ -203,7 +108,7 @@ begin
     freq[4] := freq[1] - v * d_Omega;
     freq[5] := freq[3] + v * d_Omega - 2 * v * d_w;
 
-    // Вычисление частот резонанса при res = 2
+    // Вычисление частот вторичного резонанса (при res = 2)
     if (res = 2) then
     begin
       freq[1] := freq[1] + znak * ( d_Omega_S + d_w_S + n_S );
@@ -213,6 +118,8 @@ begin
       freq[5] := freq[5] + znak * ( d_Omega_S + d_w_S + n_S );
     end;
 end; {Resonance}
+
+
 
 procedure Classification(net: NETWORK;
                         t: time_data;
@@ -316,33 +223,17 @@ begin
   end;
 end;
 
-procedure WriteToFile(var f: text;
-                      time: extended;
-                      angles, freq: arr);
-// Запись данных о резонансах в файл f
-begin
-  writeln(f, time/(86400 * 365), ' ',
-              angles[1] * toDeg, ' ',
-              angles[2] * toDeg, ' ',
-              angles[3] * toDeg, ' ',
-              angles[4] * toDeg, ' ',
-              angles[5] * toDeg, ' ',
-              freq[1], ' ', 
-              freq[2], ' ',
-              freq[3], ' ',
-              freq[4], ' ',
-              freq[5]);
-end;
+
 
 begin {Main}
-  assign(outdata, '..\Данные\Выход\Классификация.csv');
+  assign(outdata, '..\Данные\Выход\Классификация1.csv');
   rewrite(outdata);
   folder := 1;
 
   writeln(outdata, 'folder;file;F1;F2;F3;F4;F5;dF1(+);dF2(+);dF3(+);dF4(+);dF5(+);dF1(-);dF2(-);dF3(-);dF4(-);dF5(-)');
 
   { Цикл по файлам в папке folder }
-  for number := 1 to 9000 do
+  for number := 1 to 100 do
   begin
     if (number < 10) then file_num := '000' + inttostr(number);
     if (number >= 10) and (number < 100) then file_num := '00' + inttostr(number);
@@ -353,25 +244,13 @@ begin {Main}
     reset(data);
 
     if WRITE_ORBIT then
-    begin
-      assign(orbit_res, '..\Данные\Выход\Орбитальные\' + file_num + '.dat');
-      rewrite(orbit_res);
-      writeln(orbit_res, 't', #9, 'F1', #9, 'F2', #9, 'F3', #9, 'F4', #9, 'F5', #9, 'dF1', #9, 'dF2', #9, 'dF3', #9, 'dF4', #9, 'dF5');
-    end;
+      Create_File(orbit_res, '..\Данные\Выход\Орбитальные\' + file_num + '.dat');
 
     if WRITE_SECOND_PLUS then
-    begin
-      assign(second_plus, '..\Данные\Выход\Вторичные\плюс\' + file_num + '.dat');
-      rewrite(second_plus);
-      writeln(second_plus, 't', #9, 'F1', #9, 'F2', #9, 'F3', #9, 'F4', #9, 'F5', #9, 'dF1', #9, 'dF2', #9, 'dF3', #9, 'dF4', #9, 'dF5');
-    end;
+      Create_File(second_plus, '..\Данные\Выход\Вторичные\плюс\' + file_num + '.dat');
 
     if WRITE_SECOND_MINUS then
-    begin
-      assign(second_minus, '..\Данные\Выход\Вторичные\минус\' + file_num + '.dat');
-      rewrite(second_minus);
-      writeln(second_minus, 't', #9, 'F1', #9, 'F2', #9, 'F3', #9, 'F4', #9, 'F5', #9, 'dF1', #9, 'dF2', #9, 'dF3', #9, 'dF4', #9, 'dF5');
-    end;
+      Create_File(second_minus, '..\Данные\Выход\Вторичные\минус\' + file_num + '.dat');
 
     for num := 1 to 5 do 
     begin
@@ -446,23 +325,7 @@ begin {Main}
     Classification(net2, t, phi2, dot_phi2, number, classes2);
     Classification(net3, t, phi3, dot_phi3, number, classes3);
 
-    writeln(outdata, folder,';',
-                      number,';',
-                      classes[1],';',
-                      classes[2],';',
-                      classes[3],';',
-                      classes[4],';',
-                      classes[5],';',
-                      classes2[1],';',
-                      classes2[2],';',
-                      classes2[3],';',
-                      classes2[4],';',
-                      classes2[5],';',
-                      classes3[1],';',
-                      classes3[2],';',
-                      classes3[3],';',
-                      classes3[4],';',
-                      classes3[5]);
+    WriteClassification(outdata, folder, number, classes, classes2, classes3);
 
     if WRITE_SECOND_PLUS then close(second_plus);
     if WRITE_SECOND_MINUS then close(second_minus);
