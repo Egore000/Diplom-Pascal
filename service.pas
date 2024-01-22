@@ -11,7 +11,7 @@ const a_e = 149597870.691; //[km]
       toRad = pi/180; // Перевод в радианы
       toDeg = 180/pi; // Перевод в градусы
       
-      rows = 6; // Количество строк в сетке
+      rows = 12; // Количество строк в сетке
       cols = 60; // Количество столбцов в сетке
       row_step = 360 / rows; // Шаг по строкам
       col_step = 100 / cols; // Шаг по столбцам
@@ -22,8 +22,11 @@ const a_e = 149597870.691; //[km]
 
       ecc = 1e-3; // Эксцентриситет орбиты
 
+      start_folder = 1; // Начальная папка
+      finish_folder = 1; // Конечная папка
+
       start = 1; // Начальный файл
-      finish = 1; // Конечный файл
+      finish = 200; // Конечный файл
 
       res_start = 1; // Начальная компонента резонанса
       res_end = 5; // Конечная компонента резонанса
@@ -64,7 +67,7 @@ begin
     write(f, 't', #9);
     for i := res_start to res_end do write(f, 'F', i, #9);
     for i := res_start to res_end do write(f, 'dF', i, #9);
-    writeln();
+    writeln(f);
     // writeln(f, 't', #9, 'F1', #9, 'F2', #9, 'F3', #9, 'F4', #9, 'F5', #9, 'dF1', #9, 'dF2', #9, 'dF3', #9, 'dF4', #9, 'dF5');
 end;
 
@@ -78,7 +81,7 @@ begin
     write(f, time/(86400 * 365), ' ');
     for i := res_start to res_end do write(f, angles[i] * toDeg, ' ');
     for i := res_start to res_end do write(f, freq[i], ' ');
-    writeln();
+    writeln(f);
 end;
 
 
@@ -93,7 +96,7 @@ begin
     for i := res_start to res_end do write(f, classes[i], delimiter);
     for i := res_start to res_end do write(f, classes2[i], delimiter);
     for i := res_start to res_end do write(f, classes3[i], delimiter);
-    writeln();
+    writeln(f);
 end;
 
 
@@ -303,4 +306,5 @@ begin
 end;
 
 begin
+
 end.
