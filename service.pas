@@ -1,7 +1,8 @@
 unit service;
 
 interface
-uses readfond;
+uses SysUtils,
+    readfond;
 
 const a_e = 149597870.691; //[km]
       pi = 3.1415926535897932;
@@ -14,11 +15,18 @@ const a_e = 149597870.691; //[km]
       cols = 60; // Количество столбцов в сетке
       row_step = 360 / rows; // Шаг по строкам
       col_step = 100 / cols; // Шаг по столбцам
+      coef = 0.05; // Коэффициент переходов частоты через 0
 
       eps = 1e-12; // Точность вычисления аномалии в задаче двух тел
       t0 = 0; // Начальная эпоха
 
       ecc = 1e-3; // Эксцентриситет орбиты
+
+      start = 1; // Начальный файл
+      finish = 1; // Конечный файл
+
+      res_start = 1; // Начальная компонента резонанса
+      res_end = 5; // Конечная компонента резонанса
 
 type
     matrix = array[1..3,1..3] of extended; // Матрицы поворота в задаче двух тел (модуль TwoBody.pas)
@@ -32,6 +40,7 @@ type
 procedure Create_File(var f: text; path: string);
 procedure WriteToFile(var f: text; time: extended; angles, freq: arr);
 procedure WriteClassification(var f: text; folder, number: integer; classes, classes2, classes3: CLS);
+procedure WriteHeader(var f: text; min, max: integer);
 procedure fond405(jd:extended; var xm_,xs_,vm_,vs_:mas);  
 function sid2000(jd:extended):extended; {v radianah}
 function date_jd(year,month:integer;day:extended):extended;
@@ -48,10 +57,15 @@ implementation
 procedure Create_File(var f: text;
                     path: string);
 // Создание файла и запись в него заголовка
+var i: integer;
 begin
     assign(f, path);
     rewrite(f);
-    writeln(f, 't', #9, 'F1', #9, 'F2', #9, 'F3', #9, 'F4', #9, 'F5', #9, 'dF1', #9, 'dF2', #9, 'dF3', #9, 'dF4', #9, 'dF5');
+    write(f, 't', #9);
+    for i := res_start to res_end do write(f, 'F', i, #9);
+    for i := res_start to res_end do write(f, 'dF', i, #9);
+    writeln();
+    // writeln(f, 't', #9, 'F1', #9, 'F2', #9, 'F3', #9, 'F4', #9, 'F5', #9, 'dF1', #9, 'dF2', #9, 'dF3', #9, 'dF4', #9, 'dF5');
 end;
 
 
@@ -59,18 +73,12 @@ procedure WriteToFile(var f: text;
                       time: extended;
                       angles, freq: arr);
 // Запись данных о резонансах в файл f
+var i: integer;
 begin
-    writeln(f, time/(86400 * 365), ' ',
-              angles[1] * toDeg, ' ',
-              angles[2] * toDeg, ' ',
-              angles[3] * toDeg, ' ',
-              angles[4] * toDeg, ' ',
-              angles[5] * toDeg, ' ',
-              freq[1], ' ', 
-              freq[2], ' ',
-              freq[3], ' ',
-              freq[4], ' ',
-              freq[5]);
+    write(f, time/(86400 * 365), ' ');
+    for i := res_start to res_end do write(f, angles[i] * toDeg, ' ');
+    for i := res_start to res_end do write(f, freq[i], ' ');
+    writeln();
 end;
 
 
@@ -79,25 +87,28 @@ procedure WriteClassification(var f: text;
                             classes, classes2, classes3: CLS);
 // Запись в файл с классификацией
 const delimiter = ';';
+var i: integer;
 begin
-    writeln(f, folder, delimiter,
-            number, delimiter,
-            classes[1], delimiter,
-            classes[2], delimiter,
-            classes[3], delimiter,
-            classes[4], delimiter,
-            classes[5], delimiter,
-            classes2[1], delimiter,
-            classes2[2], delimiter,
-            classes2[3], delimiter,
-            classes2[4], delimiter,
-            classes2[5], delimiter,
-            classes3[1], delimiter,
-            classes3[2], delimiter,
-            classes3[3], delimiter,
-            classes3[4], delimiter,
-            classes3[5]);
+    write(f, folder, delimiter, number, delimiter);
+    for i := res_start to res_end do write(f, classes[i], delimiter);
+    for i := res_start to res_end do write(f, classes2[i], delimiter);
+    for i := res_start to res_end do write(f, classes3[i], delimiter);
+    writeln();
 end;
+
+
+
+procedure WriteHeader(var f: text;
+                    min, max: integer);
+var i: integer;
+begin
+    write(f, 'folder;file;');
+    for i := min to max do write(f, 'F' + inttostr(i) + ';');
+    for i := min to max do write(f, 'dF' + inttostr(i) + '(+);');
+    for i := min to max do write(f, 'dF' + inttostr(i) + '(-);');
+    writeln(f);
+end;
+
 
 
 procedure fond405(jd:extended; var xm_,xs_,vm_,vs_:mas);  

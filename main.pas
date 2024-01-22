@@ -146,7 +146,7 @@ begin
   // writeln('[FILE]', #9, num);
 
   // Цикл по компонентам резонанса
-  for res := 1 to 5 do
+  for res := res_start to res_end do
   begin  
     class_ := 0;
     zero_counter := 0;
@@ -192,15 +192,25 @@ begin
     begin
       // Подсчёт убывющих точек
       if (phi[res, i] > phi[res, i+1]) or 
-      ((phi[res, i] < 10 * toRad) and (phi[res, i+1] > 350 * toRad)) then inc(dec_count);
+      (phi[res, i]/2 > phi[res, i+1]) then inc(dec_count);
+      // ((phi[res, i] < 10 * toRad) and (phi[res, i+1] > 350 * toRad)) then inc(dec_count);
+
 
       // Подсчёт возрастающих точек
       if (phi[res, i] < phi[res, i+1]) or 
-      ((phi[res, i] > 350 * toRad) and (phi[res, i+1] < 10 * toRad)) then inc(inc_count);         
+      (phi[res, i]/2 < phi[res, i+1]) then inc(inc_count);
+      // ((phi[res, i] > 350 * toRad) and (phi[res, i+1] < 10 * toRad)) then inc(inc_count);         
     
       // Подсчёт переходов частоты через 0
       if (dot_phi[res, i] * dot_phi[res, i+1]) < 0 then inc(perehod_count);
     end;
+
+    writeln('[COUNT]    ', count);
+    writeln('[INCREASE]   ', inc_count);
+    writeln('[DECREASE]   ', dec_count);
+
+    // writeln('[ZERO FREQUENCE TRANSITION]   ', perehod_count);
+    if (perehod_count > count * coef) then class_ := 2;
 
     if (inc_count = count) then 
     begin
@@ -214,10 +224,6 @@ begin
       class_ := 0;
     end;
 
-    // writeln('[ZERO FREQUENCE TRANSITION]   ', perehod_count);
-    // if (perehod_count < count * 0.1) then class_ := 0
-    // else class_ := 1;
-
     // writeln('[RESONANCE]', #9, res, #9, '[CLASS]', #9, class_);
     classes[res] := class_;
   end;
@@ -230,10 +236,10 @@ begin {Main}
   rewrite(outdata);
   folder := 1;
 
-  writeln(outdata, 'folder;file;F1;F2;F3;F4;F5;dF1(+);dF2(+);dF3(+);dF4(+);dF5(+);dF1(-);dF2(-);dF3(-);dF4(-);dF5(-)');
+  WriteHeader(outdata, res_start, res_end);
 
   { Цикл по файлам в папке folder }
-  for number := 1 to 100 do
+  for number := start to finish do
   begin
     if (number < 10) then file_num := '000' + inttostr(number);
     if (number >= 10) and (number < 100) then file_num := '00' + inttostr(number);
@@ -252,7 +258,7 @@ begin {Main}
     if WRITE_SECOND_MINUS then
       Create_File(second_minus, '..\Данные\Выход\Вторичные\минус\' + file_num + '.dat');
 
-    for num := 1 to 5 do 
+    for num := res_start to res_end do 
     begin
       for row := 1 to rows do
         for col := 1 to cols do
@@ -292,7 +298,7 @@ begin {Main}
       
       t[idx] := time;
       time_idx := trunc(time / (86400 * 365 * col_step)) + 1;
-      for num := 1 to 5 do
+      for num := res_start to res_end do
       begin
         {Заполнение массивов для орбитального резонанса}
         angle_idx := trunc(angles[num] * toDeg / row_step) + 1;
