@@ -3,10 +3,6 @@ unit TwoBody;
 interface
 uses service;
      
-var t, h, n: extended;
-    a0, e, Omega0, w0, M, i0: extended;
-    X, V, Orbit: mas;
-    data: text;
 
 function f(x, M: extended): extended;
 function df(x: extended): extended;
@@ -27,12 +23,13 @@ begin
   df := 1 - ecc*cos(x);
 end;
 
-procedure TwoPoints(t, n, M0, w, Omega, i, a:extended; var X, V: mas);
+procedure TwoPoints(t, n, M0, w, Omega, i, a: extended; var X, V: mas);
 // Задача двух тел
 var M, E, E0, v0, u, dif, sum: extended;
     parametr, alpha0, beta0, gamma0, alpha, beta, gamma: extended;
     i1,i2,i3,i4: integer;
     Z1, Z2, Xi, prod: matrix;
+    Orbit: mas;
 begin
   Omega := Omega;
   M0 := M0;
