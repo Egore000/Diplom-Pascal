@@ -30,8 +30,11 @@ const
         finish = 1; // Конечный файл
 
         res_start = 1; // Начальная компонента резонанса
-        res_end = 1; // Конечная компонента резонанса
+        res_end = 5; // Конечная компонента резонанса
 
+        // Порядок резонанса (u:v)
+        u = 1;
+        v = 2;
 type
     matrix = array[1..3,1..3] of extended; // Матрицы поворота в задаче двух тел (модуль TwoBody.pas)
     mas = array[1..3] of extended; // Массив скоростей или координат
@@ -286,7 +289,7 @@ begin
 
     argum := yy[3]/r;
     phi := arcsin(argum);
-end; //perehod
+end;
 
 
 procedure OutNET(net: NETWORK);

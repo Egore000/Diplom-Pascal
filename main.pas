@@ -1,13 +1,11 @@
 ﻿uses SysUtils, 
+      Classifier,
+      ResonanceUnit,
       readfond, 
       TwoBody,
       service;
 
 const 
-      // Порядок резонанса (u:v)
-      u = 1;
-      v = 2;
-      
       // Запись в файлы
       WRITE_ORBIT = false;
       WRITE_SECOND_PLUS = false;
@@ -30,7 +28,7 @@ var coords, velocities: mas; // Массивы координат и скоро�
     net, net2, net3: NETWORK; // Сетки для разных наборов данных
     classes, classes2, classes3: CLS; // Массивы с классификацией резонансов
 
-    jd, a, e, i, Omega, w, M, megno, mean_megno: extended; 
+    a, e, i, Omega, w, M, megno, mean_megno: extended; 
     tm, time, day: extended;
     year, month, num, number, x: integer;
     idx, time_idx, angle_idx, angle2_idx, angle3_idx: integer; // Индексы
@@ -41,7 +39,6 @@ var coords, velocities: mas; // Массивы координат и скоро�
                                                 // orbit_res - выходной файл с орбитальными резонансами
                                                 // second_plus - выходной файл с вторичными резонансами (+)
                                                 // second_minus - выходной файл с вторичными резонансами (-)
-    // ss: string[11];
     ss: string[7]; // Служебная строка
 
     phi, phi2, phi3: angle_data; // Массивы с резонансными углами
@@ -52,195 +49,14 @@ var coords, velocities: mas; // Массивы координат и скоро�
     file_num: string;
 
 
-procedure Resonance(res, znak, year, month: integer;
-                    day: extended;
-                    M, Omega, w, ecc, i, a: extended; // Элементы орбиты
-                    var angles, freq: arr);
-// Процедура для вычисления орбитальных резонансов
-// res - порядок резонанса (1 - без учёта вторичных возмущений)
-//                         (2 - с учётом вторичных возмущений)
-// znak - знак lambda_s в формулах для вторичных возмущений
-// angles - массив значений критического аргумента
-// freq - массив частот резонанса
-const
-      mL = 1/81.3005690699;
-      mS = 332946.048166;
-      J2 = 1.0826359e-3;
-      r0 = 6363.6726;
-      i_L = 23.45 * toRad;
-      i_S = 23.45 * toRad;
-      a_L = 384748;
-      a_S = 149597868;
-      n_L = 2 * pi/(27.32166 * 86400);
-      n_S = 2 * pi/(365.25 * 86400);
-      d_theta = 7.292115e-5;
-
-var jd, theta, n, d_OmegaJ2, d_wJ2, d_Omega_L, d_Omega_S, d_w_L, d_w_S, d_Omega, d_w: extended;
-    xm_, xs_, vm_, vs_: mas;
-    b, ec, i_b, OmegaS, ws, M_s, lmd_s: extended;
-
-begin
-    jd := date_jd(year, month, day);
-    theta := sid2000(jd);
-
-    // Учёт влияния Солнца (при res = 2)
-    lmd_s := 0;
-    if (res = 2) then
-    begin
-      fond405(jd, xm_, xs_, vm_, vs_);
-      CoordsToElements(xs_, vs_, Gmu, b, ec, i_b, OmegaS, ws, M_s);
-      lmd_s := OmegaS + ws + M_s;
-    end;  
-
-    Reduce(u * (M + Omega + w) - v * theta + znak * lmd_s, angles[1]);
-    Reduce(u * (M + w) + v * (Omega - theta) + znak * lmd_s, angles[2]);
-    Reduce(u * M + v * (Omega + w - theta) + znak * lmd_s, angles[3]);
-    Reduce(angles[1] - v * Omega + znak * lmd_s, angles[4]);
-    Reduce(angles[3] + v * Omega - 2 * v * w + znak * lmd_s, angles[5]);
-
-    n := sqrt(mu/(a*sqr(a)));
-    d_OmegaJ2 := -1.5*J2 * n * sqr(r0/a) * cos(i) / sqr(1 - sqr(ecc));
-    d_wJ2 := 0.75*J2 * n * sqr(r0/a) * (5*sqr(cos(i)) - 1)/sqr(1 - sqr(ecc));
-
-    d_Omega_L := -3/16 * n_L * mL * (a/a_L)*sqr(a/a_L) * (2 + 3*sqr(ecc))/sqrt(1 - sqr(ecc)) * (2 - 3*sqr(sin(i_L))) * cos(i);
-    d_Omega_S := -3/16 * n_S * mS * (a/a_S)*sqr(a/a_S) * (2 + 3*sqr(ecc))/sqrt(1 - sqr(ecc)) * (2 - 3*sqr(sin(i_S))) * cos(i);
-
-    d_w_L := 3/16 * n_L * mL * (a/a_L)*sqr(a/a_L) * (4 - 5*sqr(sin(i)) + sqr(ecc))/sqrt(1 - sqr(ecc)) * (2 - 3*sqr(sin(i_L)));
-    d_w_S := 3/16 * n_S * mS * (a/a_S)*sqr(a/a_S) * (4 - 5*sqr(sin(i)) + sqr(ecc))/sqrt(1 - sqr(ecc)) * (2 - 3*sqr(sin(i_S)));
-
-    d_Omega := d_OmegaJ2 + d_Omega_L + d_Omega_S;
-    d_w := d_wJ2 + d_w_L + d_w_S;
-
-    freq[1] := u * (n + d_Omega + d_w) - v * d_theta;
-    freq[2] := u * (n + d_w) + v * (d_Omega - d_theta);
-    freq[3] := u * n + v * (d_Omega + d_w - d_theta);
-    freq[4] := freq[1] - v * d_Omega;
-    freq[5] := freq[3] + v * d_Omega - 2 * v * d_w;
-
-    // Вычисление частот вторичного резонанса (при res = 2)
-    if (res = 2) then
-    begin
-      freq[1] := freq[1] + znak * ( d_Omega_S + d_w_S + n_S );
-      freq[2] := freq[2] + znak * ( d_Omega_S + d_w_S + n_S );
-      freq[3] := freq[3] + znak * ( d_Omega_S + d_w_S + n_S );
-      freq[4] := freq[4] + znak * ( d_Omega_S + d_w_S + n_S );
-      freq[5] := freq[5] + znak * ( d_Omega_S + d_w_S + n_S );
-    end;
-end; {Resonance}
-
-
-procedure Classification(net: NETWORK;
-                        t: time_data;
-                        phi, dot_phi: angle_data;
-                        num: integer;
-                        var classes: CLS);
-// Классификация резонанса
-// Параметры:
-// net - сетка графика
-// t - массив времени
-// phi, dot_phi - массивы углов и частот
-// num - номер исследуемого объекта
-// classes - выходной массив классов резонанса
-
-// 0 - циркуляция
-// 1 - либрация
-// 2 - смешанный тип
-var
-  res, i, j: integer;
-  zero_cols_counter, zero_rows_counter, zero_counter, count: integer;
-  inc_count, dec_count, perehod_count, class_: integer;
-
-begin
-  // Цикл по компонентам резонанса
-  for res := res_start to res_end do
-  begin  
-    class_ := 0;
-    zero_counter := 0;
-    count := 0;
-    perehod_count := 0;
-
-    // Цикл по строчкам сетки
-    for i := 1 to rows do
-    begin
-      zero_rows_counter := 0; {Счётчик нулевых ячеек в строке}
-    
-      // Цикл по столбцам
-      for j := 1 to cols do
-      begin
-        count := count + net[res, i, j];
-
-        if (net[res, i, j] = 0) then 
-        begin
-          inc(zero_counter); 
-          inc(zero_rows_counter);
-        end;
-      end;
-
-      if (zero_rows_counter <> 0) then class_ := 2;
-      if (zero_rows_counter = cols) then class_ := 1;
-    end;
-
-    for j:= 1 to cols do
-    begin
-      zero_cols_counter := 0;
-
-      for i := 1 to rows do
-        if (net[res, i, j] = 0) then inc(zero_cols_counter);
-
-      if (zero_cols_counter > 1) then class_ := 2;
-    end;
-
-    if (zero_counter = 0) then class_ := 0;
-
-    inc_count := 0;
-    dec_count := 0;
-    for i := 1 to count-1 do
-    begin
-      // Подсчёт убывющих точек
-      if (phi[res, i] > phi[res, i+1]) or 
-      (phi[res, i] < phi[res, i+1]/2) then inc(dec_count);
-      // ((phi[res, i] < 10 * toRad) and (phi[res, i+1] > 350 * toRad)) then inc(dec_count);
-
-
-      // Подсчёт возрастающих точек
-      if (phi[res, i] < phi[res, i+1]) or 
-      (phi[res, i]/2 > phi[res, i+1]) then inc(inc_count);
-      // ((phi[res, i] > 350 * toRad) and (phi[res, i+1] < 10 * toRad)) then inc(inc_count);         
-    
-      // Подсчёт переходов частоты через 0
-      if (dot_phi[res, i] * dot_phi[res, i+1]) < 0 then inc(perehod_count);
-    end;
-
-    // writeln('[COUNT]    ', count);
-    // writeln('[INCREASE]   ', inc_count);
-    // writeln('[DECREASE]   ', dec_count);
-
-    // writeln('[ZERO FREQUENCE TRANSITION]   ', perehod_count);
-    if (perehod_count > count * coef) then class_ := 2;
-
-    if (inc_count = count-1) then 
-    begin
-      // writeln(inc_count, '=',count);
-      class_ := 0;
-    end;
-    
-    if (dec_count = count-1) then
-    begin
-      // writeln(dec_count, '=',count);
-      class_ := 0;
-    end;
-
-    // writeln('[RESONANCE]', #9, res, #9, '[CLASS]', #9, class_);
-    classes[res] := class_;
-  end;
-end;
-
-
-
 begin {Main}
+  {$WARNINGS-}
   assign(outdata, PATH_CLASSIFICATION);
-  // rewrite(outdata);
-  append(outdata);
+
+  if FileExists(PATH_CLASSIFICATION) then
+    append(outdata)
+  else
+    rewrite(outdata);
 
   {Заполнение заголовка в файле классификации}
   WriteHeader(outdata, res_start, res_end);
@@ -268,7 +84,7 @@ begin {Main}
       if WRITE_SECOND_MINUS then
         Create_File(second_minus, PATH_SECOND_MINUS + inttostr(folder) + '\' + file_num + '.dat');
 
-      {Заполнение массивов 0}
+      {Заполнение массивов нулями}
       FillZero(net, net2, net3, 
               t,
               phi, phi2, phi3,
