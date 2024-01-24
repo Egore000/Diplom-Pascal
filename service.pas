@@ -4,32 +4,33 @@ interface
 uses SysUtils,
     readfond;
 
-const a_e = 149597870.691; //[km]
-      pi = 3.1415926535897932;
-      mu = 3.986004418e+5; // Гравитационная постоянная для спутника
-      Gmu = 1.32712442099e+11; // Гравитационная постоянная для Солнца
-      toRad = pi/180; // Перевод в радианы
-      toDeg = 180/pi; // Перевод в градусы
-      
-      rows = 12; // Количество строк в сетке
-      cols = 60; // Количество столбцов в сетке
-      row_step = 360 / rows; // Шаг по строкам
-      col_step = 100 / cols; // Шаг по столбцам
-      coef = 0.05; // Коэффициент переходов частоты через 0
+const 
+        a_e = 149597870.691; //[km]
+        pi = 3.1415926535897932;
+        mu = 3.986004418e+5; // Гравитационная постоянная для спутника
+        Gmu = 1.32712442099e+11; // Гравитационная постоянная для Солнца
+        toRad = pi/180; // Перевод в радианы
+        toDeg = 180/pi; // Перевод в градусы
+        
+        rows = 12; // Количество строк в сетке
+        cols = 60; // Количество столбцов в сетке
+        row_step = 360 / rows; // Шаг по строкам
+        col_step = 100 / cols; // Шаг по столбцам
+        coef = 0.05; // Коэффициент переходов частоты через 0
 
-      eps = 1e-12; // Точность вычисления аномалии в задаче двух тел
-      t0 = 0; // Начальная эпоха
+        eps = 1e-12; // Точность вычисления аномалии в задаче двух тел
+        t0 = 0; // Начальная эпоха
 
-      ecc = 1e-3; // Эксцентриситет орбиты
+        ecc = 1e-3; // Эксцентриситет орбиты
 
-      start_folder = 1; // Начальная папка
-      finish_folder = 1; // Конечная папка
+        start_folder = 1; // Начальная папка
+        finish_folder = 1; // Конечная папка
 
-      start = 1; // Начальный файл
-      finish = 200; // Конечный файл
+        start = 1; // Начальный файл
+        finish = 1; // Конечный файл
 
-      res_start = 1; // Начальная компонента резонанса
-      res_end = 5; // Конечная компонента резонанса
+        res_start = 1; // Начальная компонента резонанса
+        res_end = 1; // Конечная компонента резонанса
 
 type
     matrix = array[1..3,1..3] of extended; // Матрицы поворота в задаче двух тел (модуль TwoBody.pas)
@@ -54,6 +55,10 @@ function Arctg2(x, y: extended):extended;
 function ArcSin(x: extended):extended;
 procedure perehod(HH: extended; xx: mas; var lambda, phi: extended);
 procedure OutNET(net: NETWORK);
+procedure FillZero(var net, net2, net3: NETWORK;
+                    var t: time_data;
+                    var phi, phi2, phi3: angle_data;
+                    var dot_phi, dot_phi2, dot_phi3: angle_data);
 
 implementation
 
@@ -68,7 +73,6 @@ begin
     for i := res_start to res_end do write(f, 'F', i, #9);
     for i := res_start to res_end do write(f, 'dF', i, #9);
     writeln(f);
-    // writeln(f, 't', #9, 'F1', #9, 'F2', #9, 'F3', #9, 'F4', #9, 'F5', #9, 'dF1', #9, 'dF2', #9, 'dF3', #9, 'dF4', #9, 'dF5');
 end;
 
 
@@ -303,6 +307,38 @@ begin
     end;
     writeln;
   end;
+end;
+
+
+procedure FillZero(var net, net2, net3: NETWORK;
+                    var t: time_data;
+                    var phi, phi2, phi3: angle_data;
+                    var dot_phi, dot_phi2, dot_phi3: angle_data);
+var num, row, col: integer;
+begin
+    for num := res_start to res_end do 
+    begin
+        for row := 1 to rows do
+            for col := 1 to cols do
+            begin
+            net[num, row, col] := 0;
+            net2[num, row, col] := 0;
+            net3[num, row, col] := 0;
+            end;
+        
+        for row := 1 to 2000 do
+        begin
+            t[row] := 0;
+
+            phi[num, row] := 0;
+            phi2[num, row] := 0;
+            phi3[num, row] := 0;
+
+            dot_phi[num, row] := 0;
+            dot_phi2[num, row] := 0;
+            dot_phi3[num, row] := 0;
+        end;
+    end;
 end;
 
 begin
