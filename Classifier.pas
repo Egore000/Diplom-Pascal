@@ -26,8 +26,8 @@ procedure Classification(net: NETWORK;
 // classes - выходной массив классов резонанса
 
 // 0 - циркуляция
-// 1 - либрация
-// 2 - смешанный тип
+// 1 - смешанный тип
+// 2 - либрация
 var
   res, i, j: integer;
   zero_cols_counter, zero_rows_counter, zero_counter, count: integer;
@@ -76,8 +76,8 @@ begin
     end;
 
     if (zero_counter = 0) then class_ := 0;
-    if (cols_count <> 0) then class_ := 2;
-    if (rows_count <> 0) then class_ := 1;
+    if (cols_count <> 0) then class_ := 1;
+    if (rows_count <> 0) then class_ := 2;
 
     inc_count := 0;
     dec_count := 0;
