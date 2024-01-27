@@ -52,11 +52,11 @@ begin
       lmd_s := OmegaS + ws + M_s;
     end;  
 
-    Reduce(u_ * (M + Omega + w) - v_ * theta + znak * lmd_s, angles[1]);
-    Reduce(u_ * (M + w) + v_ * (Omega - theta) + znak * lmd_s, angles[2]);
-    Reduce(u_ * M + v_ * (Omega + w - theta) + znak * lmd_s, angles[3]);
-    Reduce(angles[1] - v_ * Omega + znak * lmd_s, angles[4]);
-    Reduce(angles[3] + v_ * Omega - 2 * v_ * w + znak * lmd_s, angles[5]);
+    Reduce(u * (M + Omega + w) - v * theta + znak * lmd_s, angles[1]);
+    Reduce(u * (M + w) + v * (Omega - theta) + znak * lmd_s, angles[2]);
+    Reduce(u * M + v * (Omega + w - theta) + znak * lmd_s, angles[3]);
+    Reduce(angles[1] - v * Omega + znak * lmd_s, angles[4]);
+    Reduce(angles[3] + v * Omega - 2 * v * w + znak * lmd_s, angles[5]);
 
     n := sqrt(mu/(a*sqr(a)));
     d_OmegaJ2 := -1.5*J2 * n * sqr(r0/a) * cos(i) / sqr(1 - sqr(ecc));
@@ -71,11 +71,11 @@ begin
     d_Omega := d_OmegaJ2 + d_Omega_L + d_Omega_S;
     d_w := d_wJ2 + d_w_L + d_w_S;
 
-    freq[1] := u_ * (n + d_Omega + d_w) - v_ * d_theta;
-    freq[2] := u_ * (n + d_w) + v_ * (d_Omega - d_theta);
-    freq[3] := u_ * n + v_ * (d_Omega + d_w - d_theta);
-    freq[4] := freq[1] - v_ * d_Omega;
-    freq[5] := freq[3] + v_ * d_Omega - 2 * v_ * d_w;
+    freq[1] := u * (n + d_Omega + d_w) - v * d_theta;
+    freq[2] := u * (n + d_w) + v * (d_Omega - d_theta);
+    freq[3] := u * n + v * (d_Omega + d_w - d_theta);
+    freq[4] := freq[1] - v * d_Omega;
+    freq[5] := freq[3] + v * d_Omega - 2 * v * d_w;
 
     // Вычисление частот вторичного резонанса (при res = 2)
     if (res = 2) then

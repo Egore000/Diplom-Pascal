@@ -12,8 +12,8 @@ const
       WRITE_SECOND_MINUS = false;
 
       // Пути к файлам и директориям
-      // TARGER_FOLDER = 'Без светового давления';
-      TARGER_FOLDER = 'Со световым давлением';
+      TARGER_FOLDER = 'Без светового давления';
+      // TARGER_FOLDER = 'Со световым давлением';
 
       PATH_DATA = '..\Исходные данные\' + TARGER_FOLDER + '\'; // Путь к папке с исходными данными
       PATH_CLASSIFICATION = '..\Выходные данные\' + TARGER_FOLDER + '\Классификация1.csv'; // Путь к файлу с классификацией
@@ -50,11 +50,10 @@ var coords, velocities: mas; // Массивы координат и скоро�
 
 
 begin {Main}
+  {$WARNINGS-}
   assign(outdata, PATH_CLASSIFICATION);
 
   if FileExists(PATH_CLASSIFICATION) then
-    append(outdata)
-  else
     rewrite(outdata);
 
   {Заполнение заголовка в файле классификации}
@@ -70,8 +69,17 @@ begin {Main}
       if (number >= 100) and (number < 1000) then file_num := '0' + inttostr(number);
       if (number >= 1000) then file_num := inttostr(number);
 
-      assign(data, PATH_DATA + inttostr(folder) + '\EPH_' + file_num + '.DAT');
-      reset(data);
+      if FileExists(PATH_DATA + inttostr(folder) + '\EPH_' + file_num + '.DAT') then
+      begin
+        assign(data, PATH_DATA + inttostr(folder) + '\EPH_' + file_num + '.DAT');
+        reset(data);
+        writeln('[FILE]', #9, number);
+      end
+      else
+      begin
+        writeln('Finished!');
+        halt;
+      end;
 
       {Связь с файлами, в случае, если осуществляется запись}
       if WRITE_ORBIT then
@@ -139,7 +147,6 @@ begin {Main}
       end;
       
       // OutNET(net);
-      writeln('[FILE]', #9, number);
 
       {Классификация резонансов}
       Classification(net, t, phi, dot_phi, number, classes);

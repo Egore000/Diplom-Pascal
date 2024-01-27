@@ -26,11 +26,12 @@ procedure Classification(net: NETWORK;
 // classes - выходной массив классов резонанса
 
 // 0 - циркуляция
-// 1 - либрация
-// 2 - смешанный тип
+// 1 - смешанный тип
+// 2 - либрация
 var
   res, i, j: integer;
   zero_cols_counter, zero_rows_counter, zero_counter, count: integer;
+  cols_count, rows_count: integer;
   inc_count, dec_count, perehod_count, class_: integer;
 
 begin
@@ -41,6 +42,8 @@ begin
     zero_counter := 0;
     count := 0;
     perehod_count := 0;
+    rows_count := 0;
+    cols_count := 0;
 
     // Цикл по строчкам сетки
     for i := 1 to rows do
@@ -59,8 +62,7 @@ begin
         end;
       end;
 
-      if (zero_rows_counter <> 0) then class_ := 2;
-      if (zero_rows_counter = cols) then class_ := 1;
+      if (zero_rows_counter = cols) then inc(rows_count);
     end;
 
     for j:= 1 to cols do
@@ -70,10 +72,12 @@ begin
       for i := 1 to rows do
         if (net[res, i, j] = 0) then inc(zero_cols_counter);
 
-      if (zero_cols_counter > 1) then class_ := 2;
+      if (zero_cols_counter > 1) then inc(cols_count);
     end;
 
     if (zero_counter = 0) then class_ := 0;
+    if (cols_count <> 0) then class_ := 1;
+    if (rows_count <> 0) then class_ := 2;
 
     inc_count := 0;
     dec_count := 0;
@@ -99,19 +103,10 @@ begin
     // writeln('[DECREASE]   ', dec_count);
 
     // writeln('[ZERO FREQUENCE TRANSITION]   ', perehod_count);
-    if (perehod_count > count * coef) then class_ := 2;
+    // if (perehod_count > count * coef) then class_ := 2;
 
-    if (inc_count = count-1) then 
-    begin
-      // writeln(inc_count, '=',count);
-      class_ := 0;
-    end;
-    
-    if (dec_count = count-1) then
-    begin
-      // writeln(dec_count, '=',count);
-      class_ := 0;
-    end;
+    if (inc_count = count-1) then class_ := 0;
+    if (dec_count = count-1) then class_ := 0;
 
     // writeln('[RESONANCE]', #9, res, #9, '[CLASS]', #9, class_);
     classes[res] := class_;
