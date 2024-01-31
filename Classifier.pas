@@ -75,7 +75,7 @@ begin
       if (zero_cols_counter > 1) then inc(cols_count);
     end;
 
-    if (zero_counter = 0) then class_ := 0;
+    if (zero_counter < 3) then class_ := 0;
     if (cols_count <> 0) then class_ := 1;
     if (rows_count <> 0) then class_ := 2;
 
