@@ -149,8 +149,8 @@ begin {Main}
 
       {Классификация резонансов}
       Classification(net, t, phi, dot_phi, number, classes);
-      Classification(net2, t, phi2, dot_phi2, number, classes2);
-      Classification(net3, t, phi3, dot_phi3, number, classes3);
+      // Classification(net2, t, phi2, dot_phi2, number, classes2);
+      // Classification(net3, t, phi3, dot_phi3, number, classes3);
 
       {Запись классификации в файл}
       WriteClassification(outdata, folder, number, classes, classes2, classes3);
