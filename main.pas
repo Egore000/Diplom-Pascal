@@ -26,6 +26,7 @@ var coords, velocities: mas; // Массивы координат и скоро�
     freq, freq2, freq3: arr; // Массивы резонансных частот Ф'
 
     net, net2, net3: NETWORK; // Сетки для разных наборов данных
+    flag, flag2, flag3: FLAGS; // Полосы либрации
     classes, classes2, classes3: CLS; // Массивы с классификацией резонансов
 
     a, e, i, Omega, w, M, megno, mean_megno: extended; 
@@ -50,130 +51,148 @@ var coords, velocities: mas; // Массивы координат и скоро�
 
 
 begin {Main}
-  {$WARNINGS-}
-  assign(outdata, PATH_CLASSIFICATION);
+    {$WARNINGS-}
+    assign(outdata, PATH_CLASSIFICATION);
 
-  rewrite(outdata);
+    rewrite(outdata);
 
-  {Заполнение заголовка в файле классификации}
-  WriteHeader(outdata, res_start, res_end);
+    {Заполнение заголовка в файле классификации}
+    WriteHeader(outdata, res_start, res_end);
 
-  {Цикл по папкам}
-  for folder := start_folder to finish_folder do
+    {Цикл по папкам}
+    for folder := start_folder to finish_folder do
     { Цикл по файлам в папке folder }
     for number := start to finish do
     begin
-      if (number < 10) then file_num := '000' + inttostr(number);
-      if (number >= 10) and (number < 100) then file_num := '00' + inttostr(number);
-      if (number >= 100) and (number < 1000) then file_num := '0' + inttostr(number);
-      if (number >= 1000) then file_num := inttostr(number);
+        if (number < 10) then file_num := '000' + inttostr(number);
+        if (number >= 10) and (number < 100) then file_num := '00' + inttostr(number);
+        if (number >= 100) and (number < 1000) then file_num := '0' + inttostr(number);
+        if (number >= 1000) then file_num := inttostr(number);
 
-      if FileExists(PATH_DATA + inttostr(folder) + '\EPH_' + file_num + '.DAT') then
-      begin
-        assign(data, PATH_DATA + inttostr(folder) + '\EPH_' + file_num + '.DAT');
-        reset(data);
-        writeln('[FILE]', #9, number);
-      end
-      else
-      begin
-        writeln('Finished!');
-        halt;
-      end;
+        if FileExists(PATH_DATA + inttostr(folder) + '\EPH_' + file_num + '.DAT') then
+        begin
+            assign(data, PATH_DATA + inttostr(folder) + '\EPH_' + file_num + '.DAT');
+            reset(data);
+            writeln('[FILE]', #9, number);
+        end
+        else
+        begin
+            writeln('Finished!');
+            halt;
+        end;
 
-      {Связь с файлами, в случае, если осуществляется запись}
-      if (ORBITAL and WRITE_ORBIT) then
-        Create_File(orbit_res, PATH_ORBITAL + inttostr(folder) + '\' + file_num + '.dat');
+        {Связь с файлами, в случае, если осуществляется запись}
+        if (ORBITAL and WRITE_ORBIT) then
+            Create_File(orbit_res, PATH_ORBITAL + inttostr(folder) + '\' + file_num + '.dat');
 
-      if (SECONDARY and WRITE_SECOND_PLUS) then
-        Create_File(second_plus, PATH_SECOND_PLUS + inttostr(folder) + '\' + file_num + '.dat');
+        if (SECONDARY and WRITE_SECOND_PLUS) then
+            Create_File(second_plus, PATH_SECOND_PLUS + inttostr(folder) + '\' + file_num + '.dat');
 
-      if (SECONDARY and WRITE_SECOND_MINUS) then
-        Create_File(second_minus, PATH_SECOND_MINUS + inttostr(folder) + '\' + file_num + '.dat');
+        if (SECONDARY and WRITE_SECOND_MINUS) then
+            Create_File(second_minus, PATH_SECOND_MINUS + inttostr(folder) + '\' + file_num + '.dat');
 
-      {Заполнение массивов нулями}
-      FillZero(net, net2, net3, 
-              t,
-              phi, phi2, phi3,
-              dot_phi, dot_phi2, dot_phi3);
+        {Заполнение массивов нулями}
+        FillZero(net, net2, net3, 
+                flag, flag2, flag3,
+                t,
+                phi, phi2, phi3,
+                dot_phi, dot_phi2, dot_phi3);
         
-      idx := 0;
+        idx := 0;
 
-      while not eof(data) do
-      begin
-        {Считывание данных из файла}
-        readln(data, tm, time, ss, year, month, day);
-        readln(data, x, coords[1], coords[2], coords[3], megno);
-        readln(data, velocities[1], velocities[2], velocities[3], mean_megno);
+        while not eof(data) do
+        begin
+            {Считывание данных из файла}
+            readln(data, tm, time, ss, year, month, day);
+            readln(data, x, coords[1], coords[2], coords[3], megno);
+            readln(data, velocities[1], velocities[2], velocities[3], mean_megno);
 
-        {Расчёт элментов орбиты}
-        CoordsToElements(coords, velocities, mu, a, e, i, Omega, w, M);
+            {Расчёт элментов орбиты}
+            CoordsToElements(coords, velocities, mu, a, e, i, Omega, w, M);
 
-        {Вычисление аргументов резонансов}
+            {Вычисление аргументов резонансов}
+            if ORBITAL then
+                Resonance(1, 0, year, month, day, M, Omega, w, ecc, i, a, angles, freq);
+            
+            if SECONDARY then
+            begin
+                Resonance(2, -1, year, month, day, M, Omega, w, ecc, i, a, angles2, freq2);
+                Resonance(2, 1, year, month, day, M, Omega, w, ecc, i, a, angles3, freq3);
+            end; {if SECONDARY}
+
+            t[idx] := time / (86400 * 365);
+            time_idx := trunc(t[idx] / col_step) + 1;
+            for num := res_start to res_end do
+            begin
+                {Заполнение массивов для орбитального резонанса}
+                if ORBITAL then
+                begin
+                    angle_idx := trunc(angles[num] * toDeg / row_step) + 1;
+                    inc(net[num, angle_idx, time_idx]); // Заполнение сетки
+                    inc(flag[num, trunc(angles[num] * toDeg / libration_step) + 1]); // Заполнение полос
+
+                    phi[num, idx] := angles[num] * toDeg;
+                    dot_phi[num, idx] := freq[num];
+                end; {if ORBITAL}
+
+                if SECONDARY then
+                begin
+                    {Заполнение массивов для вторичных резонансов (знак -)}
+                    angle2_idx := trunc(angles2[num] * toDeg / row_step) + 1;
+                    inc(net2[num, angle2_idx, time_idx]); // Заполнение сетки
+                    inc(flag2[num, trunc(angles2[num] * toDeg / libration_step) + 1]); // Заполнение полос
+
+                    phi2[num, idx] := angles2[num] * toDeg;
+                    dot_phi2[num, idx] := freq2[num];
+
+                    {Заполнение массивов для вторичных резонансов (знак +)}
+                    angle3_idx := trunc(angles3[num] * toDeg / row_step) + 1;
+                    inc(net3[num, angle3_idx, time_idx]); // Заполнение сетки
+                    inc(flag3[num, trunc(angles3[num] * toDeg / libration_step) + 1]); // Заполнение полос
+
+                    phi3[num, idx] := angles3[num] * toDeg;
+                    dot_phi3[num, idx] := freq3[num];
+                end; {if SECONDARY}
+            end;
+
+            {Запись в файлы}
+            if (ORBITAL and WRITE_ORBIT) then WriteToFile(orbit_res, time, angles, freq);
+            if (SECONDARY and WRITE_SECOND_PLUS) then WriteToFile(second_minus, time, angles2, freq2);
+            if (SECONDARY and WRITE_SECOND_PLUS) then WriteToFile(second_plus, time, angles3, freq3);
+
+            inc(idx);
+        end;
+
+        {Классификация резонансов}
         if ORBITAL then
-          Resonance(1, 0, year, month, day, M, Omega, w, ecc, i, a, angles, freq);
+            Classification(net, flag, t, phi, dot_phi, classes);
         
         if SECONDARY then
         begin
-          Resonance(2, -1, year, month, day, M, Omega, w, ecc, i, a, angles2, freq2);
-          Resonance(2, 1, year, month, day, M, Omega, w, ecc, i, a, angles3, freq3);
+            Classification(net2, flag2, t, phi2, dot_phi2, classes2);
+            Classification(net3, flag3, t, phi3, dot_phi3, classes3);
         end;
 
-        t[idx] := time;
-        time_idx := trunc(time / (86400 * 365 * col_step)) + 1;
-        for num := res_start to res_end do
+        {Вывод разбиения для либрации при отладке}
+        if DEBUG then
         begin
-          if ORBITAL then
-          begin
-            {Заполнение массивов для орбитального резонанса}
-            angle_idx := trunc(angles[num] * toDeg / row_step) + 1;
-            inc(net[num, angle_idx, time_idx]);
-            phi[num, idx] := angles[num];
-            dot_phi[num, idx] := freq[num];
-          end;
-
-          if SECONDARY then
-          begin
-            {Заполнение массивов для вторичных резонансов (знак -)}
-            angle2_idx := trunc(angles2[num] * toDeg / row_step) + 1;
-            inc(net2[num, angle2_idx, time_idx]);
-            phi2[num, idx] := angles2[num];
-            dot_phi2[num, idx] := freq2[num];
-
-            {Заполнение массивов для вторичных резонансов (знак +)}
-            angle3_idx := trunc(angles3[num] * toDeg / row_step) + 1;
-            inc(net3[num, angle3_idx, time_idx]);
-            phi3[num, idx] := angles3[num];
-            dot_phi3[num, idx] := freq3[num];
-          end;
+            for idx := 1 to 5 do
+            begin
+                for time_idx := 1 to libration_rows do 
+                    write(flag[idx, time_idx], #9);
+                writeln;
+            end;
         end;
         
-        {Запись в файлы}
-        if (ORBITAL and WRITE_ORBIT) then WriteToFile(orbit_res, time, angles, freq);
-        if (SECONDARY and WRITE_SECOND_PLUS) then WriteToFile(second_minus, time, angles2, freq2);
-        if (SECONDARY and WRITE_SECOND_PLUS) then WriteToFile(second_plus, time, angles3, freq3);
+        {Запись классификации в файл}
+        WriteClassification(outdata, folder, number, classes, classes2, classes3);
 
-        inc(idx);
-      end;
-
-      {Классификация резонансов}
-      if ORBITAL then
-        Classification(net, t, phi, dot_phi, number, classes);
-      
-      if SECONDARY then
-      begin
-        Classification(net2, t, phi2, dot_phi2, number, classes2);
-        Classification(net3, t, phi3, dot_phi3, number, classes3);
-      end;
-
-      {Запись классификации в файл}
-      WriteClassification(outdata, folder, number, classes, classes2, classes3);
-
-      {Закрытие файлов, если они были открыты на запись}
-      if (SECONDARY and WRITE_SECOND_PLUS) then close(second_plus);
-      if (SECONDARY and WRITE_SECOND_MINUS) then close(second_minus);
-      if (ORBITAL and WRITE_ORBIT) then close(orbit_res);
-      
-      close(data);
+        {Закрытие файлов, если они были открыты на запись}
+        if (SECONDARY and WRITE_SECOND_PLUS) then close(second_plus);
+        if (SECONDARY and WRITE_SECOND_MINUS) then close(second_minus);
+        if (ORBITAL and WRITE_ORBIT) then close(orbit_res);
+        
+        close(data);
     end;
-  close(outdata);
+    close(outdata);
 end.

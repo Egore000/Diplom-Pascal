@@ -47,9 +47,9 @@ begin
     lmd_s := 0;
     if (res = 2) then
     begin
-      fond405(jd, xm_, xs_, vm_, vs_);
-      CoordsToElements(xs_, vs_, Gmu, b, ec, i_b, OmegaS, ws, M_s);
-      lmd_s := OmegaS + ws + M_s;
+        fond405(jd, xm_, xs_, vm_, vs_);
+        CoordsToElements(xs_, vs_, Gmu, b, ec, i_b, OmegaS, ws, M_s);
+        lmd_s := OmegaS + ws + M_s;
     end;  
 
     Reduce(u * (M + Omega + w) - v * theta + znak * lmd_s, angles[1]);
@@ -80,11 +80,11 @@ begin
     // Вычисление частот вторичного резонанса (при res = 2)
     if (res = 2) then
     begin
-      freq[1] := freq[1] + znak * ( d_Omega_S + d_w_S + n_S );
-      freq[2] := freq[2] + znak * ( d_Omega_S + d_w_S + n_S );
-      freq[3] := freq[3] + znak * ( d_Omega_S + d_w_S + n_S );
-      freq[4] := freq[4] + znak * ( d_Omega_S + d_w_S + n_S );
-      freq[5] := freq[5] + znak * ( d_Omega_S + d_w_S + n_S );
+        freq[1] := freq[1] + znak * ( d_Omega_S + d_w_S + n_S );
+        freq[2] := freq[2] + znak * ( d_Omega_S + d_w_S + n_S );
+        freq[3] := freq[3] + znak * ( d_Omega_S + d_w_S + n_S );
+        freq[4] := freq[4] + znak * ( d_Omega_S + d_w_S + n_S );
+        freq[5] := freq[5] + znak * ( d_Omega_S + d_w_S + n_S );
     end;
 end; {Resonance}
 
