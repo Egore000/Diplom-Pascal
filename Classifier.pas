@@ -94,18 +94,21 @@ begin
       if (dot_phi[res, i] * dot_phi[res, i+1]) < 0 then inc(perehod_count);
     end;
 
-    writeln('F', res);
-    writeln('[COUNT]    ', count);
-    writeln('[INCREASE]   ', inc_count);
-    writeln('[DECREASE]   ', dec_count);
-
-    writeln('[ZERO FREQUENCE TRANSITION]   ', perehod_count);
     // if (perehod_count > count * coef) then class_ := 2;
 
     if (inc_count = count-1) then classes[res] := 0;
     if (dec_count = count-1) then classes[res] := 0;
 
-    writeln('[RESONANCE]', #9, res, #9, '[CLASS]', #9, classes[res]);
+    if DEBUG then
+    begin
+      writeln('F', res);
+      writeln('[COUNT]    ', count);
+      writeln('[INCREASE]   ', inc_count);
+      writeln('[DECREASE]   ', dec_count);
+
+      writeln('[ZERO FREQUENCE TRANSITION]   ', perehod_count);
+      writeln('[RESONANCE]', #9, res, #9, '[CLASS]', #9, classes[res]);
+    end;
   end;
 end;
 
