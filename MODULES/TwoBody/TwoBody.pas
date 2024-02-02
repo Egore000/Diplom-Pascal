@@ -1,8 +1,9 @@
 unit TwoBody;
 
 interface
-uses service in '..\Tools\Service\service.pas';
-     
+uses service in '..\Tools\Service\service.pas',
+    constants in '..\..\params\CONSTANT\constants.pas',
+    config in '..\..\params\config\config.pas';
 
 function f(x, M: extended): extended;
 function df(x: extended): extended;
