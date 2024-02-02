@@ -37,9 +37,9 @@ procedure Classification(net: NETWORK;
 // 2 - либрация
 var
     res, i, j: integer;
-    zero_counter, count, libration: integer;
+    count, libration: integer;
     perehod_count: integer;
-    increase, decrease: array[1..5] of integer;
+    zero_counter, increase, decrease: array[res_start..res_end] of integer;
 
 begin
     for res := res_start to res_end do
@@ -52,7 +52,7 @@ begin
     // Цикл по компонентам резонанса
     for res := res_start to res_end do
     begin  
-        zero_counter := 0;
+        zero_counter[res] := 0;
         count := 0;
         perehod_count := 0;
 
@@ -63,27 +63,22 @@ begin
             begin
                 count := count + net[res, i, j];
 
-                if (net[res, i, j] = 0) then inc(zero_counter); 
+                if (net[res, i, j] = 0) then inc(zero_counter[res]); 
             end; {for j}
-
-
-        // if (zero_counter < 3) then classes[res] := 0;
-        // if (cols_count <> 0) then classes[res] := 1;
-        // if (rows_count <> 0) then classes[res] := 2;
 
         for i := 1 to count-1 do
         begin
             // Подсчёт убывющих точек
-            if ((decrease[res] = 0) and (phi[res, i] > phi[res, i+1])) or 
+            if (phi[res, i] > phi[res, i+1]) or 
             ((phi[res, i]/2 < phi[res, i+1]) and (phi[res, i] < 100)) then 
             else
-                decrease[res] := 1;
+                inc(decrease[res]);
 
             // Подсчёт возрастающих точек
-            if ((increase[res] = 0) and (phi[res, i] < phi[res, i+1])) or 
+            if (phi[res, i] < phi[res, i+1]) or 
             ((phi[res, i]/2 > phi[res, i+1]) and (phi[res, i] > 260)) then
             else
-                increase[res] := 1;   
+                inc(increase[res]);   
     
             // Подсчёт переходов частоты через 0
             if (dot_phi[res, i] * dot_phi[res, i+1]) < 0 then inc(perehod_count);
@@ -103,7 +98,7 @@ begin
         if (libration > 0) and (increase[res] <> 0) and (decrease[res] <> 0) then
             classes[res] := 2
         else
-            if (increase[res] = 0) or (decrease[res] = 0) or (zero_counter < 3) then
+            if (increase[res] < limit) or (decrease[res] < limit) or (zero_counter[res] < 3) then
                 classes[res] := 0
             else
                 classes[res] := 1;
@@ -112,7 +107,7 @@ begin
         begin
             writeln('[RESONANCE]', #9, res, #9, '[CLASS]', #9, classes[res]);
             writeln('[COUNT]  ', count);
-            writeln('[ZEROS]  ',  zero_counter);
+            writeln('[ZEROS]  ',  zero_counter[res]);
             writeln('[ZERO FREQUENCE TRANSITION]   ', perehod_count);
             writeln;
         end; {if}

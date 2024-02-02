@@ -18,7 +18,7 @@ const
       // TARGER_FOLDER = 'Со световым давлением';
 
       PATH_DATA = '..\Исходные данные\' + TARGER_FOLDER + '\'; // Путь к папке с исходными данными
-      PATH_CLASSIFICATION = '..\Выходные данные\' + TARGER_FOLDER + '\Классификация2.csv'; // Путь к файлу с классификацией
+      PATH_CLASSIFICATION = '..\Выходные данные\' + TARGER_FOLDER + '\Классификация.csv'; // Путь к файлу с классификацией
       PATH_ORBITAL = '..\Выходные данные\' + TARGER_FOLDER + '\Орбитальные\'; // Путь к папке с данными об орбитальных резонансах
       PATH_SECOND_PLUS = '..\Выходные данные\' + TARGER_FOLDER + '\Вторичные\плюс\'; // Путь к папке с данными о вторичных резонансах (+)
       PATH_SECOND_MINUS = '..\Выходные данные\' + TARGER_FOLDER + '\Вторичные\минус\'; // Путь к папке с данными о вторичных резонансах (-)
@@ -155,7 +155,7 @@ begin {Main}
                         phi3[num, idx] := angles3[num] * toDeg;
                         dot_phi3[num, idx] := freq3[num];
                     end; {if SECONDARY}
-                end;
+                end; {for num}
 
                 {Запись в файлы}
                 if (ORBITAL and WRITE_ORBIT) then WriteToFile(orbit_res, time, angles, freq);
@@ -163,7 +163,7 @@ begin {Main}
                 if (SECONDARY and WRITE_SECOND_PLUS) then WriteToFile(second_plus, time, angles3, freq3);
 
                 inc(idx);
-            end;
+            end; {while not eof(data)}
 
             {Классификация резонансов}
             if ORBITAL then
@@ -195,6 +195,6 @@ begin {Main}
             if (ORBITAL and WRITE_ORBIT) then close(orbit_res);
             
             close(data);
-        end;
+        end; {for number}
     close(outdata);
 end.
