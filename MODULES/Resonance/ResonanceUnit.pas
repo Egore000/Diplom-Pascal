@@ -2,8 +2,8 @@ unit ResonanceUnit;
 
 interface
 uses SysUtils,
-    service,
-    TwoBody;
+    service in '..\Tools\Service\service.pas',
+    TwoBody in '..\TwoBody\TwoBody.pas';
 
 procedure Resonance(res, znak, year, month: integer;
                     day: extended;

@@ -2,7 +2,7 @@ unit service;
 
 interface
 uses SysUtils,
-    readfond;
+    readfond in '..\ReadFond\readfond.pas';
 
 const 
         ORBITAL = true; // Исследование орбитального резонанса
@@ -14,11 +14,11 @@ const
 
         DEBUG = false; // Дебаггинг
 
-        start_folder = 3; // Начальная папка
-        finish_folder = 3; // Конечная папка
+        start_folder = 2; // Начальная папка
+        finish_folder = 2; // Конечная папка
 
-        start = 1; // Начальный файл
-        finish = 9000; // Конечный файл
+        start = 1000; // Начальный файл
+        finish = 1100; // Конечный файл
 
         res_start = 1; // Начальная компонента резонанса
         res_end = 5; // Конечная компонента резонанса
@@ -45,6 +45,7 @@ const
 
         ecc = 1e-3; // Эксцентриситет орбиты
 
+        delimiter = #9; // Разделитель в выходных файлах
 type
     matrix = array[1..3,1..3] of extended; // Матрицы поворота в задаче двух тел (модуль TwoBody.pas)
     mas = array[1..3] of extended; // Массив скоростей или координат
@@ -85,10 +86,12 @@ begin
     assign(f, path);
     rewrite(f);
     write(f, 't', #9);
-    for i := res_start to res_end do write(f, 'F', i, #9);
-    for i := res_start to res_end do write(f, 'dF', i, #9);
+    if ORBITAL then
+        for i := res_start to res_end do write(f, 'F', i, #9);
+    if SECONDARY then
+        for i := res_start to res_end do write(f, 'dF', i, #9);
     writeln(f);
-end;
+end; {Create_File}
 
 
 procedure WriteToFile(var f: text;
@@ -97,26 +100,29 @@ procedure WriteToFile(var f: text;
 // Запись данных о резонансах в файл f
 var i: integer;
 begin
-    write(f, time/(86400 * 365), ' ');
-    for i := res_start to res_end do write(f, angles[i] * toDeg, ' ');
-    for i := res_start to res_end do write(f, freq[i], ' ');
+    write(f, time/(86400 * 365), delimiter);
+    for i := res_start to res_end do write(f, angles[i] * toDeg, delimiter);
+    for i := res_start to res_end do write(f, freq[i], delimiter);
     writeln(f);
-end;
+end; {WriteToFile}
 
 
 procedure WriteClassification(var f: text;
                             folder, number: integer;
                             classes, classes2, classes3: CLS);
 // Запись в файл с классификацией
-const delimiter = ';';
 var i: integer;
 begin
     write(f, folder, delimiter, number, delimiter);
-    for i := res_start to res_end do write(f, classes[i], delimiter);
-    for i := res_start to res_end do write(f, classes2[i], delimiter);
-    for i := res_start to res_end do write(f, classes3[i], delimiter);
+    if ORBITAL then
+        for i := res_start to res_end do write(f, classes[i], delimiter);
+    if SECONDARY then
+    begin
+        for i := res_start to res_end do write(f, classes2[i], delimiter);
+        for i := res_start to res_end do write(f, classes3[i], delimiter);
+    end;
     writeln(f);
-end;
+end; {WriteClassification}
 
 
 
@@ -124,12 +130,16 @@ procedure WriteHeader(var f: text;
                     min, max: integer);
 var i: integer;
 begin
-    write(f, 'folder;file;');
-    for i := min to max do write(f, 'F' + inttostr(i) + ';');
-    for i := min to max do write(f, 'dF' + inttostr(i) + '(+);');
-    for i := min to max do write(f, 'dF' + inttostr(i) + '(-);');
+    write(f, 'folder', delimiter, 'file', delimiter);
+    if ORBITAL then
+        for i := min to max do write(f, 'F', i, delimiter);
+    if SECONDARY then
+    begin
+        for i := min to max do write(f, 'dF' + inttostr(i) + '(+)', delimiter);
+        for i := min to max do write(f, 'dF' + inttostr(i) + '(-)', delimiter);
+    end;
     writeln(f);
-end;
+end; {WriteHeader}
 
 
 
@@ -159,7 +169,7 @@ begin
     vs_[1] := -x_planet[16] * a_e/86400;
     vs_[2] := -x_planet[17] * a_e/86400;
     vs_[3] := -x_planet[18] * a_e/86400;     {vs=-ve}
-end;
+end; {fond405}
 
 
 function sid2000(jd: extended): extended; {v radianah}
@@ -174,7 +184,7 @@ begin
     mm := m*86400;
     s := (24110.54841+mm+236.555367908*(d+m)+(0.093104*t-6.21E-6*sqr(t))*t)/86400*2*pi;
     sid2000 := s;
-end; // sid2000()
+end; {sid2000}
 
 
 function date_jd(year, month: integer;
@@ -202,7 +212,7 @@ begin
     jb := 2 - ja + trunc(ja/4);
     jd := jd+jb;
     date_jd := jd;
-end; //date_jd()
+end; {date_jd()}
 
 
 procedure Reduce(A:extended;var B:extended);
@@ -210,7 +220,7 @@ const PI2 = 2*pi;
 begin
     B := A - trunc(A/PI2)*PI2;
     if (A < 0) then B := B + PI2;
-end; //Reduce
+end; {Reduce}
 
 
 function Sign(n:extended):Shortint;
@@ -219,7 +229,7 @@ begin
     else 
         if (n < 0) then Sign := -1
         else Sign := 0;
-end; //Sign
+end; {Sign}
 
 
 function ArcTg(x, y: extended):extended;
@@ -233,7 +243,7 @@ begin
         if (a < 0) then a := a+2*Pi;
         ArcTg := a;
     end;
-end; //ArcTg
+end; {ArcTg}
 
 
 function Arctg2(x, y: extended):extended;
@@ -301,7 +311,7 @@ begin
 
     argum := yy[3]/r;
     phi := arcsin(argum);
-end;
+end; {perehod}
 
 
 procedure OutNET(net: NETWORK);
@@ -322,7 +332,7 @@ begin
         end;
         writeln;
     end;
-end;
+end; {OutNET}
 
 
 procedure FillZero(var net, net2, net3: NETWORK;
@@ -362,7 +372,7 @@ begin
             flag3[num, row] := 0;
         end;
     end;
-end;
+end; {FillZero}
 
 begin
 

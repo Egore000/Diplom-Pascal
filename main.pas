@@ -1,9 +1,9 @@
 ﻿uses SysUtils, 
-      Classifier,
-      ResonanceUnit,
-      readfond, 
-      TwoBody,
-      service;
+      Classifier in 'MODULES\Classifier\Classifier.pas',
+      ResonanceUnit in 'MODULES\Resonance\Resonance.pas',
+      readfond in 'MODULES\Tools\ReadFond\readfond.pas', 
+      TwoBody in 'MODULES\TwoBody\TwoBody.pas', 
+      service in 'MODULES\Tools\Service\service.pas';
 
 const 
       // Запись в файлы
@@ -16,7 +16,7 @@ const
       // TARGER_FOLDER = 'Со световым давлением';
 
       PATH_DATA = '..\Исходные данные\' + TARGER_FOLDER + '\'; // Путь к папке с исходными данными
-      PATH_CLASSIFICATION = '..\Выходные данные\' + TARGER_FOLDER + '\Классификация1.csv'; // Путь к файлу с классификацией
+      PATH_CLASSIFICATION = '..\Выходные данные\' + TARGER_FOLDER + '\Классификация2.csv'; // Путь к файлу с классификацией
       PATH_ORBITAL = '..\Выходные данные\' + TARGER_FOLDER + '\Орбитальные\'; // Путь к папке с данными об орбитальных резонансах
       PATH_SECOND_PLUS = '..\Выходные данные\' + TARGER_FOLDER + '\Вторичные\плюс\'; // Путь к папке с данными о вторичных резонансах (+)
       PATH_SECOND_MINUS = '..\Выходные данные\' + TARGER_FOLDER + '\Вторичные\минус\'; // Путь к папке с данными о вторичных резонансах (-)

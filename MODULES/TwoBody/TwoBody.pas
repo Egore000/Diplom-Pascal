@@ -1,7 +1,7 @@
 unit TwoBody;
 
 interface
-uses service;
+uses service in '..\Tools\Service\service.pas';
      
 
 function f(x, M: extended): extended;

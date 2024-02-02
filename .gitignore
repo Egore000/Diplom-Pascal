@@ -2,3 +2,4 @@
 *.exe
 *.o
 *.ppu
+*\libration_Fi.dpr

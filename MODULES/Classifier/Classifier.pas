@@ -2,7 +2,7 @@ unit Classifier;
 
 interface
 uses SysUtils,
-    service;
+    service in '..\Tools\Service\service.pas';
 
 procedure Classification(net: NETWORK; 
                         flag: FLAGS;
