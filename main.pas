@@ -178,7 +178,7 @@ begin {Main}
             {Вывод разбиения для либрации при отладке}
             if DEBUG then
             begin
-                for idx := 1 to 5 do
+                for idx := res_start to res_end do
                 begin
                     for time_idx := 1 to libration_rows do 
                         write(flag[idx, time_idx], #9);

@@ -11,10 +11,10 @@ type
     mas = array[1..3] of extended; // Массив скоростей или координат
     CLS = array[1..5] of integer; // Массив для классификации компонент резонансного аргумента
     arr = array[1..5] of extended; // Массив резонансных аргументов или частот
-    angle_data = array[1..5, 1..2000] of extended; // Матрица с полным набором резонансных углов 
+    angle_data = array[res_start..res_end, 1..2000] of extended; // Матрица с полным набором резонансных углов 
     time_data = array[1..2000] of extended; // Вектор с моментами времени
-    NETWORK = array[1..5, 1..rows + 1, 1..cols + 1] of integer; // Сетка разбиения данных для классификации
-    FLAGS = array[1..5, 1..libration_rows] of integer;
+    NETWORK = array[res_start..res_end, 1..rows + 1, 1..cols + 1] of integer; // Сетка разбиения данных для классификации
+    FLAGS = array[res_start..res_end, 1..libration_rows] of integer;
 
 procedure Create_File(var f: text; path: string);
 procedure WriteToFile(var f: text; time: extended; angles, freq: arr);

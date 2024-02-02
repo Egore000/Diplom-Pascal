@@ -110,12 +110,13 @@ begin
     V[1] := sqrt(mu/parametr)*(ecc*sin(v0)*alpha0 + (1 + ecc*cos(v0))*alpha);
     V[2] := sqrt(mu/parametr)*(ecc*sin(v0)*beta0 + (1 + ecc*cos(v0))*beta);
     V[3] := sqrt(mu/parametr)*(ecc*sin(v0)*gamma0 + (1 + ecc*cos(v0))*gamma);
-end;
+end; {TwoPoints}
 
 
 
 procedure CoordsToElements(Coords, Velocities: mas; mu: extended;
                            var a, e, i, Omega, w, M: extended);
+// Перевод координат и скоростей в кеплеровы элементы орбиты
 var x, y, z, Vx, Vy, Vz: extended;
     r, V2, h, c1, c2, c3, l1, l2, l3, E0: extended;
     c, l: extended;
@@ -155,7 +156,7 @@ begin
     E0 := Arctg2((x*Vx + y*Vy + z*Vz)/(e * sqrt(mu * a)), (1 - r/a)/e);
 
     M := E0 - e*sin(E0);
-end;  
+end;  {CoordsToElements}
 
 begin {Main}
 end.
