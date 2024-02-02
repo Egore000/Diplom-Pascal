@@ -2,39 +2,10 @@ unit service;
 
 interface
 uses SysUtils,
-    readfond;
+    readfond in '..\ReadFond\readfond.pas',
+    constants in '..\..\params\CONSTANT\constants.pas',
+    config in '..\..\params\config\config.pas';
 
-const 
-        a_e = 149597870.691; //[km]
-        pi = 3.1415926535897932;
-        mu = 3.986004418e+5; // Гравитационная постоянная для спутника
-        Gmu = 1.32712442099e+11; // Гравитационная постоянная для Солнца
-        toRad = pi/180; // Перевод в радианы
-        toDeg = 180/pi; // Перевод в градусы
-        
-        rows = 36; // Количество строк в сетке
-        cols = 20; // Количество столбцов в сетке
-        row_step = 360 / rows; // Шаг по строкам
-        col_step = 100 / cols; // Шаг по столбцам
-        coef = 0.05; // Коэффициент переходов частоты через 0
-
-        eps = 1e-12; // Точность вычисления аномалии в задаче двух тел
-        t0 = 0; // Начальная эпоха
-
-        ecc = 1e-3; // Эксцентриситет орбиты
-
-        start_folder = 1; // Начальная папка
-        finish_folder = 3; // Конечная папка
-
-        start = 1; // Начальный файл
-        finish = 9000; // Конечный файл
-
-        res_start = 1; // Начальная компонента резонанса
-        res_end = 5; // Конечная компонента резонанса
-
-        // Порядок резонанса (u:v)
-        u = 1;
-        v = 2;
 type
     matrix = array[1..3,1..3] of extended; // Матрицы поворота в задаче двух тел (модуль TwoBody.pas)
     mas = array[1..3] of extended; // Массив скоростей или координат
@@ -43,6 +14,7 @@ type
     angle_data = array[1..5, 1..2000] of extended; // Матрица с полным набором резонансных углов 
     time_data = array[1..2000] of extended; // Вектор с моментами времени
     NETWORK = array[1..5, 1..rows + 1, 1..cols + 1] of integer; // Сетка разбиения данных для классификации
+    FLAGS = array[1..5, 1..libration_rows] of integer;
 
 procedure Create_File(var f: text; path: string);
 procedure WriteToFile(var f: text; time: extended; angles, freq: arr);
@@ -59,6 +31,7 @@ function ArcSin(x: extended):extended;
 procedure perehod(HH: extended; xx: mas; var lambda, phi: extended);
 procedure OutNET(net: NETWORK);
 procedure FillZero(var net, net2, net3: NETWORK;
+                    var flag, flag2, flag3: FLAGS;
                     var t: time_data;
                     var phi, phi2, phi3: angle_data;
                     var dot_phi, dot_phi2, dot_phi3: angle_data);
@@ -73,10 +46,12 @@ begin
     assign(f, path);
     rewrite(f);
     write(f, 't', #9);
-    for i := res_start to res_end do write(f, 'F', i, #9);
-    for i := res_start to res_end do write(f, 'dF', i, #9);
+    if ORBITAL then
+        for i := res_start to res_end do write(f, 'F', i, #9);
+    if SECONDARY then
+        for i := res_start to res_end do write(f, 'dF', i, #9);
     writeln(f);
-end;
+end; {Create_File}
 
 
 procedure WriteToFile(var f: text;
@@ -85,26 +60,29 @@ procedure WriteToFile(var f: text;
 // Запись данных о резонансах в файл f
 var i: integer;
 begin
-    write(f, time/(86400 * 365), ' ');
-    for i := res_start to res_end do write(f, angles[i] * toDeg, ' ');
-    for i := res_start to res_end do write(f, freq[i], ' ');
+    write(f, time/(86400 * 365), delimiter);
+    for i := res_start to res_end do write(f, angles[i] * toDeg, delimiter);
+    for i := res_start to res_end do write(f, freq[i], delimiter);
     writeln(f);
-end;
+end; {WriteToFile}
 
 
 procedure WriteClassification(var f: text;
                             folder, number: integer;
                             classes, classes2, classes3: CLS);
 // Запись в файл с классификацией
-const delimiter = ';';
 var i: integer;
 begin
     write(f, folder, delimiter, number, delimiter);
-    for i := res_start to res_end do write(f, classes[i], delimiter);
-    for i := res_start to res_end do write(f, classes2[i], delimiter);
-    for i := res_start to res_end do write(f, classes3[i], delimiter);
+    if ORBITAL then
+        for i := res_start to res_end do write(f, classes[i], delimiter);
+    if SECONDARY then
+    begin
+        for i := res_start to res_end do write(f, classes2[i], delimiter);
+        for i := res_start to res_end do write(f, classes3[i], delimiter);
+    end;
     writeln(f);
-end;
+end; {WriteClassification}
 
 
 
@@ -112,12 +90,16 @@ procedure WriteHeader(var f: text;
                     min, max: integer);
 var i: integer;
 begin
-    write(f, 'folder;file;');
-    for i := min to max do write(f, 'F' + inttostr(i) + ';');
-    for i := min to max do write(f, 'dF' + inttostr(i) + '(+);');
-    for i := min to max do write(f, 'dF' + inttostr(i) + '(-);');
+    write(f, 'folder', delimiter, 'file', delimiter);
+    if ORBITAL then
+        for i := min to max do write(f, 'F', i, delimiter);
+    if SECONDARY then
+    begin
+        for i := min to max do write(f, 'dF' + inttostr(i) + '(+)', delimiter);
+        for i := min to max do write(f, 'dF' + inttostr(i) + '(-)', delimiter);
+    end;
     writeln(f);
-end;
+end; {WriteHeader}
 
 
 
@@ -147,7 +129,7 @@ begin
     vs_[1] := -x_planet[16] * a_e/86400;
     vs_[2] := -x_planet[17] * a_e/86400;
     vs_[3] := -x_planet[18] * a_e/86400;     {vs=-ve}
-end;
+end; {fond405}
 
 
 function sid2000(jd: extended): extended; {v radianah}
@@ -162,7 +144,7 @@ begin
     mm := m*86400;
     s := (24110.54841+mm+236.555367908*(d+m)+(0.093104*t-6.21E-6*sqr(t))*t)/86400*2*pi;
     sid2000 := s;
-end; // sid2000()
+end; {sid2000}
 
 
 function date_jd(year, month: integer;
@@ -190,7 +172,7 @@ begin
     jb := 2 - ja + trunc(ja/4);
     jd := jd+jb;
     date_jd := jd;
-end; //date_jd()
+end; {date_jd()}
 
 
 procedure Reduce(A:extended;var B:extended);
@@ -198,7 +180,7 @@ const PI2 = 2*pi;
 begin
     B := A - trunc(A/PI2)*PI2;
     if (A < 0) then B := B + PI2;
-end; //Reduce
+end; {Reduce}
 
 
 function Sign(n:extended):Shortint;
@@ -207,7 +189,7 @@ begin
     else 
         if (n < 0) then Sign := -1
         else Sign := 0;
-end; //Sign
+end; {Sign}
 
 
 function ArcTg(x, y: extended):extended;
@@ -221,29 +203,29 @@ begin
         if (a < 0) then a := a+2*Pi;
         ArcTg := a;
     end;
-end; //ArcTg
+end; {ArcTg}
 
 
 function Arctg2(x, y: extended):extended;
 var a: extended;
 begin
-   if (abs(y)<1e-18) then
-      if (x>0) then  
-        Arctg2 := sign(x)*0.5*pi
-      else
-        Arctg2 := -sign(x)*0.5*pi
-  else
-  begin
-    a := ArcTan(x/y);
-    if (y>0) then
-      
-    else if (x>=0) then 
-            a := a + pi
-         else
-            a := a - pi;
-   
-    Arctg2 := a;
-  end;
+    if (abs(y)<1e-18) then
+        if (x>0) then  
+            Arctg2 := sign(x)*0.5*pi
+        else
+            Arctg2 := -sign(x)*0.5*pi
+    else
+    begin
+        a := ArcTan(x/y);
+        if (y>0) then
+        
+        else if (x>=0) then 
+                a := a + pi
+            else
+                a := a - pi;
+    
+        Arctg2 := a;
+    end;
 end; {Arctg2}
 
 
@@ -278,10 +260,10 @@ begin
 
     for i:=1 to 3 do
     begin
-      s := 0;
-      for j:=1 to 3 do
-        s := s + A[i,j]*xx[j];
-      yy[i] := s;
+        s := 0;
+        for j:=1 to 3 do
+            s := s + A[i,j]*xx[j];
+        yy[i] := s;
     end;
     r := sqrt(yy[1]*yy[1] + yy[2]*yy[2] + yy[3]*yy[3]);
 
@@ -289,7 +271,7 @@ begin
 
     argum := yy[3]/r;
     phi := arcsin(argum);
-end;
+end; {perehod}
 
 
 procedure OutNET(net: NETWORK);
@@ -297,23 +279,24 @@ procedure OutNET(net: NETWORK);
 var 
   num, row, col: integer;
 begin
-  for num := 1 to 5 do
-  begin
-    writeln('num = ', num);
-    for row := 1 to rows do
+    for num := 1 to 5 do
     begin
-      for col := 1 to cols do
-      begin
-        write(net[num, row, col], #9);
-      end;
-      writeln;
+        writeln('num = ', num);
+        for row := 1 to rows do
+        begin
+            for col := 1 to cols do
+            begin
+                write(net[num, row, col], #9);
+            end;
+            writeln;
+        end;
+        writeln;
     end;
-    writeln;
-  end;
-end;
+end; {OutNET}
 
 
 procedure FillZero(var net, net2, net3: NETWORK;
+                    var flag, flag2, flag3: FLAGS;
                     var t: time_data;
                     var phi, phi2, phi3: angle_data;
                     var dot_phi, dot_phi2, dot_phi3: angle_data);
@@ -341,8 +324,15 @@ begin
             dot_phi2[num, row] := 0;
             dot_phi3[num, row] := 0;
         end;
+
+        for row := 1 to libration_rows do
+        begin
+            flag[num, row] := 0;
+            flag2[num, row] := 0;
+            flag3[num, row] := 0;
+        end;
     end;
-end;
+end; {FillZero}
 
 begin
 

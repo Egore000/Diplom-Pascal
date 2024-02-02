@@ -1,4 +1,6 @@
-uses TwoBody, SysUtils;
+uses 
+    SysUtils,
+    TwoBody in '..\MODULES\TwoBody\TwoBody.pas';
 
 const Omega = 240;
     w = 0;
