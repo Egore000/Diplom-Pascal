@@ -1,9 +1,11 @@
 ﻿uses SysUtils, 
-      Classifier,
-      ResonanceUnit,
-      readfond, 
-      TwoBody,
-      service;
+    Classifier in 'MODULES\Classifier\Classifier.pas',
+    ResonanceUnit in 'MODULES\Resonance\Resonance.pas',
+    readfond in 'MODULES\Tools\ReadFond\readfond.pas',     
+    TwoBody in 'MODULES\TwoBody\TwoBody.pas', 
+    service in 'MODULES\Tools\Service\service.pas',
+    constants in 'params\CONSTANT\constants.pas',
+    config in 'params\config\config.pas';
 
 const 
       // Запись в файлы
@@ -12,11 +14,11 @@ const
       WRITE_SECOND_MINUS = false;
 
       // Пути к файлам и директориям
-      // TARGER_FOLDER = 'Без светового давления';
-      TARGER_FOLDER = 'Со световым давлением';
+      TARGER_FOLDER = 'Без светового давления';
+      // TARGER_FOLDER = 'Со световым давлением';
 
       PATH_DATA = '..\Исходные данные\' + TARGER_FOLDER + '\'; // Путь к папке с исходными данными
-      PATH_CLASSIFICATION = '..\Выходные данные\' + TARGER_FOLDER + '\Классификация1.csv'; // Путь к файлу с классификацией
+      PATH_CLASSIFICATION = '..\Выходные данные\' + TARGER_FOLDER + '\Классификация2.csv'; // Путь к файлу с классификацией
       PATH_ORBITAL = '..\Выходные данные\' + TARGER_FOLDER + '\Орбитальные\'; // Путь к папке с данными об орбитальных резонансах
       PATH_SECOND_PLUS = '..\Выходные данные\' + TARGER_FOLDER + '\Вторичные\плюс\'; // Путь к папке с данными о вторичных резонансах (+)
       PATH_SECOND_MINUS = '..\Выходные данные\' + TARGER_FOLDER + '\Вторичные\минус\'; // Путь к папке с данными о вторичных резонансах (-)
@@ -26,6 +28,7 @@ var coords, velocities: mas; // Массивы координат и скоро�
     freq, freq2, freq3: arr; // Массивы резонансных частот Ф'
 
     net, net2, net3: NETWORK; // Сетки для разных наборов данных
+    flag, flag2, flag3: FLAGS; // Полосы либрации
     classes, classes2, classes3: CLS; // Массивы с классификацией резонансов
 
     a, e, max_e, i, Omega, w, M, megno, mean_megno: extended; 
@@ -46,7 +49,7 @@ var coords, velocities: mas; // Массивы координат и скоро�
     t: time_data; // Массив с моментами времени
 
     folder: integer; // Папка с исходными файлами
-    file_num, input: string;
+    file_num: string;
 
 
 begin {Main}
@@ -56,55 +59,56 @@ begin {Main}
   rewrite(outdata);
   rewrite(eccentr);
 
-  {Заполнение заголовка в файле классификации}
-  WriteHeader(outdata, res_start, res_end);
+    {Заполнение заголовка в файле классификации}
+    WriteHeader(outdata, res_start, res_end);
 
-  {Цикл по папкам}
-  for folder := start_folder to finish_folder do
+    {Цикл по папкам}
+    for folder := start_folder to finish_folder do
     { Цикл по файлам в папке folder }
-    for number := start to finish do
-    begin
-      if (number < 10) then file_num := '000' + inttostr(number);
-      if (number >= 10) and (number < 100) then file_num := '00' + inttostr(number);
-      if (number >= 100) and (number < 1000) then file_num := '0' + inttostr(number);
-      if (number >= 1000) then file_num := inttostr(number);
+        for number := start to finish do
+        begin
+            if (number < 10) then file_num := '000' + inttostr(number);
+            if (number >= 10) and (number < 100) then file_num := '00' + inttostr(number);
+            if (number >= 100) and (number < 1000) then file_num := '0' + inttostr(number);
+            if (number >= 1000) then file_num := inttostr(number);
 
-      if FileExists(PATH_DATA + inttostr(folder) + '\EPH_' + file_num + '.DAT') then
-      begin
-        assign(data, PATH_DATA + inttostr(folder) + '\EPH_' + file_num + '.DAT');
-        reset(data);
-        writeln('[FILE]', #9, number);
-      end
-      else
-      begin
-        writeln('Finished!');
-        halt;
-      end;
+            if FileExists(PATH_DATA + inttostr(folder) + '\EPH_' + file_num + '.DAT') then
+            begin
+                assign(data, PATH_DATA + inttostr(folder) + '\EPH_' + file_num + '.DAT');
+                reset(data);
+                writeln('[FILE]', #9, number);
+            end
+            else
+            begin
+                writeln('Finished!');
+                halt;
+            end;
 
-      {Связь с файлами, в случае, если осуществляется запись}
-      if WRITE_ORBIT then
-        Create_File(orbit_res, PATH_ORBITAL + inttostr(folder) + '\' + file_num + '.dat');
+            {Связь с файлами, в случае, если осуществляется запись}
+            if (ORBITAL and WRITE_ORBIT) then
+                Create_File(orbit_res, PATH_ORBITAL + inttostr(folder) + '\' + file_num + '.dat');
 
-      if WRITE_SECOND_PLUS then
-        Create_File(second_plus, PATH_SECOND_PLUS + inttostr(folder) + '\' + file_num + '.dat');
+            if (SECONDARY and WRITE_SECOND_PLUS) then
+                Create_File(second_plus, PATH_SECOND_PLUS + inttostr(folder) + '\' + file_num + '.dat');
 
-      if WRITE_SECOND_MINUS then
-        Create_File(second_minus, PATH_SECOND_MINUS + inttostr(folder) + '\' + file_num + '.dat');
+            if (SECONDARY and WRITE_SECOND_MINUS) then
+                Create_File(second_minus, PATH_SECOND_MINUS + inttostr(folder) + '\' + file_num + '.dat');
 
-      {Заполнение массивов нулями}
-      FillZero(net, net2, net3, 
-              t,
-              phi, phi2, phi3,
-              dot_phi, dot_phi2, dot_phi3);
-        
-      idx := 0;
-      max_e := 0;
-      while not eof(data) do
-      begin
-        {Считывание данных из файла}
-        readln(data, tm, time, ss, year, month, day);
-        readln(data, x, coords[1], coords[2], coords[3], megno);
-        readln(data, velocities[1], velocities[2], velocities[3], mean_megno);
+            {Заполнение массивов нулями}
+            FillZero(net, net2, net3, 
+                    flag, flag2, flag3,
+                    t,
+                    phi, phi2, phi3,
+                    dot_phi, dot_phi2, dot_phi3);
+            
+            idx := 0;
+
+            while not eof(data) do
+            begin
+                {Считывание данных из файла}
+                readln(data, tm, time, ss, year, month, day);
+                readln(data, x, coords[1], coords[2], coords[3], megno);
+                readln(data, velocities[1], velocities[2], velocities[3], mean_megno);
 
         {Расчёт элментов орбиты}
         CoordsToElements(coords, velocities, mu, a, e, i, Omega, w, M);
@@ -133,17 +137,17 @@ begin {Main}
       //     phi2[num, idx] := angles2[num];
       //     dot_phi2[num, idx] := freq2[num];
 
-      //     {Заполнение массивов для вторичных резонансов (знак +)}
-      //     angle3_idx := trunc(angles3[num] * toDeg / row_step) + 1;
-      //     inc(net3[num, angle3_idx, time_idx]);
-      //     phi3[num, idx] := angles3[num];
-      //     dot_phi3[num, idx] := freq3[num];
-      //   end;
+          {Заполнение массивов для вторичных резонансов (знак +)}
+          angle3_idx := trunc(angles3[num] * toDeg / row_step) + 1;
+          inc(net3[num, angle3_idx, time_idx]);
+          phi3[num, idx] := angles3[num];
+          dot_phi3[num, idx] := freq3[num];
+        end;
         
-      //   {Запись в файлы}
-      //   if WRITE_ORBIT then WriteToFile(orbit_res, time, angles, freq);
-      //   if WRITE_SECOND_PLUS then WriteToFile(second_minus, time, angles2, freq2);
-      //   if WRITE_SECOND_PLUS then WriteToFile(second_plus, time, angles3, freq3);
+        {Запись в файлы}
+        if WRITE_ORBIT then WriteToFile(orbit_res, time, angles, freq);
+        if WRITE_SECOND_PLUS then WriteToFile(second_minus, time, angles2, freq2);
+        if WRITE_SECOND_PLUS then WriteToFile(second_plus, time, angles3, freq3);
 
       //   inc(idx);
       end;
@@ -159,12 +163,12 @@ begin {Main}
       {Запись классификации в файл}
       // WriteClassification(outdata, folder, number, classes, classes2, classes3);
 
-      {Закрытие файлов, если они были открыты на запись}
-      if WRITE_SECOND_PLUS then close(second_plus);
-      if WRITE_SECOND_MINUS then close(second_minus);
-      if WRITE_ORBIT then close(orbit_res);
-      close(data);
-    end;
-  close(outdata);
-  close(eccentr);
+            {Закрытие файлов, если они были открыты на запись}
+            if (SECONDARY and WRITE_SECOND_PLUS) then close(second_plus);
+            if (SECONDARY and WRITE_SECOND_MINUS) then close(second_minus);
+            if (ORBITAL and WRITE_ORBIT) then close(orbit_res);
+            
+            close(data);
+        end;
+    close(outdata);
 end.
