@@ -3,6 +3,8 @@ unit ResonanceUnit;
 interface
 uses SysUtils,
     service in '..\Tools\Service\service.pas',
+    constants in '..\..\params\CONSTANT\constants.pas',
+    config in '..\..\params\config\config.pas',
     TwoBody in '..\TwoBody\TwoBody.pas';
 
 procedure Resonance(res, znak, year, month: integer;
