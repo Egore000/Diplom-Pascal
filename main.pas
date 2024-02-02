@@ -49,7 +49,7 @@ var coords, velocities: mas; // Массивы координат и скоро�
     t: time_data; // Массив с моментами времени
 
     folder: integer; // Папка с исходными файлами
-    file_num, input: string;
+    file_num: string;
 
 
 begin {Main}
@@ -159,7 +159,7 @@ begin {Main}
 
                 {Запись в файлы}
                 if (ORBITAL and WRITE_ORBIT) then WriteToFile(orbit_res, time, angles, freq);
-                if (SECONDARY and WRITE_SECOND_PLUS) then WriteToFile(second_minus, time, angles2, freq2);
+                if (SECONDARY and WRITE_SECOND_MINUS) then WriteToFile(second_minus, time, angles2, freq2);
                 if (SECONDARY and WRITE_SECOND_PLUS) then WriteToFile(second_plus, time, angles3, freq3);
 
                 inc(idx);
