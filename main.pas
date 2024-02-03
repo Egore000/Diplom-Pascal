@@ -8,20 +8,20 @@
     config in 'params\config\config.pas';
 
 const 
-      // Запись в файлы
-      WRITE_ORBIT = false;
-      WRITE_SECOND_PLUS = false;
-      WRITE_SECOND_MINUS = false;
+    // Запись в файлы
+    WRITE_ORBIT = false;
+    WRITE_SECOND_PLUS = false;
+    WRITE_SECOND_MINUS = false;
 
-      // Пути к файлам и директориям
-      TARGER_FOLDER = 'Без светового давления';
-      // TARGER_FOLDER = 'Со световым давлением';
+    // Пути к файлам и директориям
+    TARGER_FOLDER = 'Без светового давления';
+    // TARGER_FOLDER = 'Со световым давлением';
 
-      PATH_DATA = '..\Исходные данные\' + TARGER_FOLDER + '\'; // Путь к папке с исходными данными
-      PATH_CLASSIFICATION = '..\Выходные данные\' + TARGER_FOLDER + '\Классификация.csv'; // Путь к файлу с классификацией
-      PATH_ORBITAL = '..\Выходные данные\' + TARGER_FOLDER + '\Орбитальные\'; // Путь к папке с данными об орбитальных резонансах
-      PATH_SECOND_PLUS = '..\Выходные данные\' + TARGER_FOLDER + '\Вторичные\плюс\'; // Путь к папке с данными о вторичных резонансах (+)
-      PATH_SECOND_MINUS = '..\Выходные данные\' + TARGER_FOLDER + '\Вторичные\минус\'; // Путь к папке с данными о вторичных резонансах (-)
+    PATH_DATA = '..\Исходные данные\' + TARGER_FOLDER + '\'; // Путь к папке с исходными данными
+    PATH_CLASSIFICATION = '..\Выходные данные\' + TARGER_FOLDER + '\Классификация.DAT'; // Путь к файлу с классификацией
+    PATH_ORBITAL = '..\Выходные данные\' + TARGER_FOLDER + '\Орбитальные\'; // Путь к папке с данными об орбитальных резонансах
+    PATH_SECOND_PLUS = '..\Выходные данные\' + TARGER_FOLDER + '\Вторичные\плюс\'; // Путь к папке с данными о вторичных резонансах (+)
+    PATH_SECOND_MINUS = '..\Выходные данные\' + TARGER_FOLDER + '\Вторичные\минус\'; // Путь к папке с данными о вторичных резонансах (-)
 
 var coords, velocities: mas; // Массивы координат и скоростей
     angles, angles2, angles3: arr; // Массивы резонансных углов Ф
@@ -115,16 +115,18 @@ begin {Main}
                 {Расчёт элментов орбиты}
                 CoordsToElements(coords, velocities, mu, a, e, i, Omega, w, M);
 
+                {Сохранение начальных данных}
                 if (time = 0) then
                 begin
                     a0 := round(a);
                     i0 := round(i * toDeg);
                 end;
 
-                {Вычисление аргументов резонансов}
+                {Вычисление аргументов орбитального резонанса}
                 if ORBITAL then
                     Resonance(1, 0, year, month, day, M, Omega, w, ecc, i, a, angles, freq);
                 
+                {Вычисление аргументов вторичного резонанса}
                 if SECONDARY then
                 begin
                     Resonance(2, -1, year, month, day, M, Omega, w, ecc, i, a, angles2, freq2);

@@ -298,7 +298,7 @@ procedure OutNET(net: NETWORK);
 var 
   num, row, col: integer;
 begin
-    for num := 1 to 5 do
+    for num := res_start to res_end do
     begin
         writeln('num = ', num);
         for row := 1 to rows do

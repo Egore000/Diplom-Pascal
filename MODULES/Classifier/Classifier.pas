@@ -125,6 +125,8 @@ begin
         for i := res_start to res_end do
             write(decrease[i], #9);
         writeln;
+
+        OutNET(net);
     end;
 end;
 
