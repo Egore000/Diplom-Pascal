@@ -18,7 +18,7 @@ type
 
 procedure Create_File(var f: text; path: string);
 procedure WriteToFile(var f: text; time: extended; angles, freq: arr);
-procedure WriteClassification(var f: text; folder, number: integer; classes, classes2, classes3: CLS);
+procedure WriteClassification(var f: text; folder, number: integer; a0, i0, megno: extended; classes, classes2, classes3: CLS);
 procedure WriteHeader(var f: text; min, max: integer);
 procedure fond405(jd:extended; var xm_,xs_,vm_,vs_:mas);  
 function sid2000(jd:extended):extended; {v radianah}
@@ -45,11 +45,11 @@ var i: integer;
 begin
     assign(f, path);
     rewrite(f);
-    write(f, 't', #9);
+    write(f, 't', delimiter);
     if ORBITAL then
-        for i := res_start to res_end do write(f, 'F', i, #9);
+        for i := res_start to res_end do write(f, 'F', i, delimiter);
     if SECONDARY then
-        for i := res_start to res_end do write(f, 'dF', i, #9);
+        for i := res_start to res_end do write(f, 'dF', i, delimiter);
     writeln(f);
 end; {Create_File}
 
@@ -69,11 +69,21 @@ end; {WriteToFile}
 
 procedure WriteClassification(var f: text;
                             folder, number: integer;
+                            a0, i0, megno: extended; 
                             classes, classes2, classes3: CLS);
 // Запись в файл с классификацией
 var i: integer;
 begin
-    write(f, folder, delimiter, number, delimiter);
+    if INITIAL_ELEMENTS then
+        write(f, folder, delimiter, 
+                number, delimiter, 
+                a0, delimiter,
+                i0, delimiter,
+                megno, delimiter)
+    else
+        write(f, folder, delimiter, number, delimiter);
+    
+    
     if ORBITAL then
         for i := res_start to res_end do write(f, classes[i], delimiter);
     if SECONDARY then
@@ -90,7 +100,16 @@ procedure WriteHeader(var f: text;
                     min, max: integer);
 var i: integer;
 begin
-    write(f, 'folder', delimiter, 'file', delimiter);
+    if INITIAL_ELEMENTS then
+        write(f, 'folder', delimiter, 
+                'file', delimiter,
+                'a, km', delimiter,
+                'i, grad', delimiter,
+                'MEGNO', delimiter)
+    else        
+        write(f, 'folder', delimiter, 
+                'file', delimiter);
+
     if ORBITAL then
         for i := min to max do write(f, 'F', i, delimiter);
     if SECONDARY then
