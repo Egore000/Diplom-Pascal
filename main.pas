@@ -18,7 +18,7 @@ const
       // TARGER_FOLDER = 'Со световым давлением';
 
       PATH_DATA = '..\Исходные данные\' + TARGER_FOLDER + '\'; // Путь к папке с исходными данными
-      PATH_CLASSIFICATION = '..\Выходные данные\' + TARGER_FOLDER + '\Классификация.csv'; // Путь к файлу с классификацией
+      PATH_CLASSIFICATION = '..\Выходные данные\' + TARGER_FOLDER + '\Классификация.DAT'; // Путь к файлу с классификацией
       PATH_ORBITAL = '..\Выходные данные\' + TARGER_FOLDER + '\Орбитальные\'; // Путь к папке с данными об орбитальных резонансах
       PATH_SECOND_PLUS = '..\Выходные данные\' + TARGER_FOLDER + '\Вторичные\плюс\'; // Путь к папке с данными о вторичных резонансах (+)
       PATH_SECOND_MINUS = '..\Выходные данные\' + TARGER_FOLDER + '\Вторичные\минус\'; // Путь к папке с данными о вторичных резонансах (-)
@@ -31,7 +31,8 @@ var coords, velocities: mas; // Массивы координат и скоро�
     flag, flag2, flag3: FLAGS; // Полосы либрации
     classes, classes2, classes3: CLS; // Массивы с классификацией резонансов
 
-    a, e, i, Omega, w, M, megno, mean_megno: extended; 
+    a, e, i, Omega, w, M, megno, mean_megno, mean: extended; 
+    a0, i0: extended; // Начальные параметры орбиты 
     tm, time, day: extended;
     year, month, num, number, x: integer;
     idx, time_idx, angle_idx, angle2_idx, angle3_idx: integer; // Индексы
@@ -101,7 +102,7 @@ begin {Main}
                     dot_phi, dot_phi2, dot_phi3);
             
             idx := 0;
-
+            mean := 0;
             while not eof(data) do
             begin
                 {Считывание данных из файла}
@@ -109,8 +110,16 @@ begin {Main}
                 readln(data, x, coords[1], coords[2], coords[3], megno);
                 readln(data, velocities[1], velocities[2], velocities[3], mean_megno);
 
+                mean := mean + megno;
+
                 {Расчёт элментов орбиты}
                 CoordsToElements(coords, velocities, mu, a, e, i, Omega, w, M);
+
+                if (time = 0) then
+                begin
+                    a0 := round(a);
+                    i0 := round(i * toDeg);
+                end;
 
                 {Вычисление аргументов резонансов}
                 if ORBITAL then
@@ -122,7 +131,7 @@ begin {Main}
                     Resonance(2, 1, year, month, day, M, Omega, w, ecc, i, a, angles3, freq3);
                 end; {if SECONDARY}
 
-                t[idx] := time / (86400 * 365);
+                t[idx] := time / (86400 * 365); {Перевод секунд в года}
                 time_idx := trunc(t[idx] / col_step) + 1;
                 for num := res_start to res_end do
                 begin
@@ -165,10 +174,13 @@ begin {Main}
                 inc(idx);
             end; {while not eof(data)}
 
-            {Классификация резонансов}
+            mean := mean / idx; // Среднее значение MEGNO за всё время исследования динаимки объекта
+
+            {Классификация орбитальных резонансов}
             if ORBITAL then
                 Classification(net, flag, t, phi, dot_phi, classes);
             
+            {Классификация вторичных резонансов}
             if SECONDARY then
             begin
                 Classification(net2, flag2, t, phi2, dot_phi2, classes2);
@@ -187,7 +199,7 @@ begin {Main}
             end;
             
             {Запись классификации в файл}
-            WriteClassification(outdata, folder, number, classes, classes2, classes3);
+            WriteClassification(outdata, folder, number, a0, i0, mean, classes, classes2, classes3);
 
             {Закрытие файлов, если они были открыты на запись}
             if (SECONDARY and WRITE_SECOND_PLUS) then close(second_plus);
