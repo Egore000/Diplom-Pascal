@@ -98,7 +98,7 @@ begin
         if (libration > 0) and (increase[res] <> 0) and (decrease[res] <> 0) then
             classes[res] := 2
         else
-            if (increase[res] < limit) or (decrease[res] < limit) or (zero_counter[res] < 3) then
+            if (increase[res] < limit) or (decrease[res] < limit) or (zero_counter[res] < EMPTY_CELLS) then
                 classes[res] := 0
             else
                 classes[res] := 1;
