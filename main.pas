@@ -14,14 +14,14 @@ const
     WRITE_SECOND_MINUS = false;
 
     // Пути к файлам и директориям
-    TARGER_FOLDER = 'Без светового давления';
-    // TARGER_FOLDER = 'Со световым давлением';
+    // TARGET_FOLDER = 'Без светового давления';
+    TARGET_FOLDER = 'Со световым давлением';
 
-    PATH_DATA = '..\Исходные данные\' + TARGER_FOLDER + '\'; // Путь к папке с исходными данными
-    PATH_CLASSIFICATION = '..\Выходные данные\' + TARGER_FOLDER + '\Классификация.DAT'; // Путь к файлу с классификацией
-    PATH_ORBITAL = '..\Выходные данные\' + TARGER_FOLDER + '\Орбитальные\'; // Путь к папке с данными об орбитальных резонансах
-    PATH_SECOND_PLUS = '..\Выходные данные\' + TARGER_FOLDER + '\Вторичные\плюс\'; // Путь к папке с данными о вторичных резонансах (+)
-    PATH_SECOND_MINUS = '..\Выходные данные\' + TARGER_FOLDER + '\Вторичные\минус\'; // Путь к папке с данными о вторичных резонансах (-)
+    PATH_DATA = '..\Исходные данные\' + TARGET_FOLDER + '\'; // Путь к папке с исходными данными
+    PATH_CLASSIFICATION = '..\Выходные данные\' + TARGET_FOLDER + '\Классификация.DAT'; // Путь к файлу с классификацией
+    PATH_ORBITAL = '..\Выходные данные\' + TARGET_FOLDER + '\Орбитальные\'; // Путь к папке с данными об орбитальных резонансах
+    PATH_SECOND_PLUS = '..\Выходные данные\' + TARGET_FOLDER + '\Вторичные\плюс\'; // Путь к папке с данными о вторичных резонансах (+)
+    PATH_SECOND_MINUS = '..\Выходные данные\' + TARGET_FOLDER + '\Вторичные\минус\'; // Путь к папке с данными о вторичных резонансах (-)
 
 var coords, velocities: mas; // Массивы координат и скоростей
     angles, angles2, angles3: arr; // Массивы резонансных углов Ф
@@ -76,7 +76,7 @@ begin {Main}
             begin
                 assign(data, PATH_DATA + inttostr(folder) + '\EPH_' + file_num + '.DAT');
                 reset(data);
-                writeln('[FILE]', #9, number);
+                writeln('[FOLDER]', #9, folder, #9, '[FILE]', #9, number);
             end
             else
             begin
