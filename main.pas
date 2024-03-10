@@ -110,7 +110,7 @@ begin {Main}
                 readln(data, x, coords[1], coords[2], coords[3], megno);
                 readln(data, velocities[1], velocities[2], velocities[3], mean_megno);
 
-                mean := mean + megno;
+                mean := mean + mean_megno;
 
                 {Расчёт элментов орбиты}
                 CoordsToElements(coords, velocities, mu, a, e, i, Omega, w, M);
